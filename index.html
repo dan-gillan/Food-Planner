@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Family Kitchen Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background-color: #020617;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: 90px;
+    }
+    button { cursor: pointer; font-family: inherit; touch-action: manipulation; }
+    input, select, textarea { font-family: inherit; }
+    .hidden { display: none !important; }
+    .modal-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.82);
+      z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px;
+    }
+    .pulse-mic { animation: pulseRing 1.4s infinite; background-color: #e11d48 !important; color: #fff !important; }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(225, 29, 72, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+    }
+    .chip { cursor: grab; user-select: none; }
+    .chip:active { cursor: grabbing; }
+    .dropzone { min-height: 42px; transition: background-color 0.2s, border-color 0.2s; }
+    .dropzone.dragover { background-color: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.6); }
+    .fresh-amber { border-color: #f59e0b !important; background-color: rgba(245, 158, 11, 0.12) !important; color: #fcd34d !important; }
+    .fresh-red { border-color: #ef4444 !important; background-color: rgba(239, 68, 68, 0.16) !important; color: #fca5a5 !important; animation: pulseRed 2s infinite; }
+    @keyframes pulseRed {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+      70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24">
+
+  <!-- TOP NAVIGATION -->
+  <header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="bg-emerald-500/20 text-emerald-400 px-2.5 py-1.5 rounded-xl border border-emerald-500/30 font-bold text-lg">
+          🍴
+        </div>
+        <div>
+          <h1 class="font-bold text-base sm:text-lg tracking-tight text-white">Family Kitchen Hub</h1>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <button type="button" onclick="window.openModal('staplesModal')" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700">
+          🧂 Spices &amp; Basics (<span id="staplesCountBadge">10</span>)
+        </button>
+        <button type="button" onclick="window.pullFromCloud(true)" id="cloudStatusBtn" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center gap-1.5">
+          <span id="cloudStatusDot" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+          <span id="cloudStatusText">Local Mode</span>
+        </button>
+        <button type="button" onclick="window.openModal('syncModal')" class="px-2.5 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-sky-300 rounded-lg border border-slate-700 flex items-center gap-1.5">
+          <span id="aiKeyDot" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+          <span>☁️ Sync &amp; AI Key</span>
+        </button>
+        <button type="button" onclick="window.clearWeek()" class="px-2.5 py-1.5 text-xs font-semibold bg-rose-950/70 hover:bg-rose-900 text-rose-300 rounded-lg border border-rose-800/60">
+          ↺ Reset Week
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-5 space-y-6">
+
+    <!-- SECTION 1: 3-ZONE INVENTORY + OUT OF STOCK BANK -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            🧊 What's in the House
+          </h2>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="window.inventRecipesWithAI()" id="aiInventBtn" class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold">
+            🤖 Invent New Recipes (AI)
+          </button>
+          <button type="button" onclick="window.suggestFromChips()" class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold">
+            ✨ Match Regulars
+          </button>
+        </div>
+      </div>
+
+      <!-- Zone Selector + Voice/Text Quick Dump -->
+      <div class="flex flex-col sm:flex-row gap-2">
+        <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-800 shrink-0 overflow-x-auto">
+          <button type="button" onclick="window.setZone('Auto')" id="zoneBtn-Auto" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white">✨ AI Auto</button>
+          <button type="button" onclick="window.setZone('Fridge')" id="zoneBtn-Fridge" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400">🥬 Fridge</button>
+          <button type="button" onclick="window.setZone('Freezer')" id="zoneBtn-Freezer" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400">❄️ Freezer</button>
+          <button type="button" onclick="window.setZone('Cupboard')" id="zoneBtn-Cupboard" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400">🥫 Cupboard</button>
+          <button type="button" onclick="window.setZone('Out of Stock')" id="zoneBtn-OutOfStock" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400">🛒 Out of Stock</button>
+        </div>
+
+        <div class="flex flex-1 gap-2">
+          <input id="chipInput" type="text" placeholder="e.g. 2 tins of chopped tomatoes, milk, pasta..." 
+            class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 outline-none"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.addChipsFromInput(); }" />
+          <button type="button" id="micBtn" onclick="window.toggleVoiceInput()" title="Voice Dictation"
+            class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-rose-400 border border-slate-700 rounded-xl font-bold text-sm shrink-0">
+            🎤
+          </button>
+          <button type="button" id="addChipBtn" onclick="window.addChipsFromInput()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shrink-0">
+            + Add
+          </button>
+        </div>
+      </div>
+
+      <div class="text-[11px] text-slate-400 px-1 mb-[-4px]">
+        Use +/- to change quantity. Dragging into <b>Out of Stock</b> (or clicking X) adds it to your shopping list!
+      </div>
+
+      <!-- 3 Storage Columns: Fridge, Freezer, Cupboard -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 dropzone" ondragover="window.allowDrop(event)" ondrop="window.dropToZone(event, 'Fridge')" ondragenter="event.currentTarget.classList.add('dragover')" ondragleave="event.currentTarget.classList.remove('dragover')">
+          <div class="flex items-center justify-between mb-2 pb-1 border-b border-slate-800">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">🥬 Fridge &amp; Chilled</span>
+            <span id="count-Fridge" class="text-[11px] text-slate-500">0 items</span>
+          </div>
+          <div id="chips-Fridge" class="flex flex-col gap-1.5 min-h-[36px]"></div>
+        </div>
+
+        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 dropzone" ondragover="window.allowDrop(event)" ondrop="window.dropToZone(event, 'Freezer')" ondragenter="event.currentTarget.classList.add('dragover')" ondragleave="event.currentTarget.classList.remove('dragover')">
+          <div class="flex items-center justify-between mb-2 pb-1 border-b border-slate-800">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400">❄️ Freezer</span>
+            <span id="count-Freezer" class="text-[11px] text-slate-500">0 items</span>
+          </div>
+          <div id="chips-Freezer" class="flex flex-col gap-1.5 min-h-[36px]"></div>
+        </div>
+
+        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 dropzone" ondragover="window.allowDrop(event)" ondrop="window.dropToZone(event, 'Cupboard')" ondragenter="event.currentTarget.classList.add('dragover')" ondragleave="event.currentTarget.classList.remove('dragover')">
+          <div class="flex items-center justify-between mb-2 pb-1 border-b border-slate-800">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">🥫 Cupboard &amp; Tins</span>
+            <span id="count-Cupboard" class="text-[11px] text-slate-500">0 items</span>
+          </div>
+          <div id="chips-Cupboard" class="flex flex-col gap-1.5 min-h-[36px]"></div>
+        </div>
+      </div>
+
+      <!-- Out of Stock Box -->
+      <div class="bg-slate-950 border border-slate-700 border-dashed rounded-xl p-3 mt-3 dropzone" ondragover="window.allowDrop(event)" ondrop="window.dropToZone(event, 'Out of Stock')" ondragenter="event.currentTarget.classList.add('dragover')" ondragleave="event.currentTarget.classList.remove('dragover')">
+        <div class="flex items-center justify-between mb-2 pb-1 border-b border-slate-800/60">
+          <span class="text-xs font-bold uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+            <span>🛒 Out of Stock (Saved Bank &amp; Auto-Added to Shopping List)</span>
+          </span>
+          <span id="count-OutOfStock" class="text-[11px] text-slate-500">0 items</span>
+        </div>
+        <div id="chips-OutOfStock" class="flex flex-wrap gap-1.5 min-h-[36px] items-start content-start"></div>
+      </div>
+
+      <!-- Use It Up / AI Invented Output -->
+      <div id="useItUpBox" class="hidden pt-3 border-t border-slate-800"></div>
+    </section>
+
+    <!-- SECTION 2: 7-DAY INTERACTIVE MEAL BOARD -->
+    <section class="space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white">
+            📅 7-Day Meal &amp; Leftover Board
+          </h2>
+          <p class="text-xs text-slate-400">Toggle "♻️ Eat Twice" for batch/transformer meals, "⇄ Swap Day" to trade nights, or "👨‍🍳 Cook View" for step-by-step instructions.</p>
+        </div>
+        <button type="button" onclick="window.runSwapFreshnessCheck()" class="px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 rounded-xl text-xs font-bold">
+          🔍 AI Freshness &amp; Schedule Check
+        </button>
+      </div>
+
+      <div id="swapAuditBox" class="hidden bg-sky-950/70 border border-sky-700/60 rounded-xl p-3 text-xs text-sky-200"></div>
+      <div id="weekGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5"></div>
+    </section>
+
+    <!-- SECTION 3 & 4 SPLIT: GROCERY EXPORTER + REGULARS BANK -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- SECTION 4: SMART GROCERY & GOOGLE KEEP EXPORTER -->
+      <section class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-bold text-white">
+              🛒 Aldi / Lidl Shopping List
+            </h2>
+            <p class="text-xs text-slate-400">Combines planned meals + Out of Stock items. Clean 1-line-per-item export for Google Keep checkboxes.</p>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="window.runAiPackAudit()" id="aiPackAuditBtn" class="px-2.5 py-2 bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 text-xs font-bold rounded-xl">
+              ✨ AI Pack-Size Audit
+            </button>
+            <button type="button" onclick="window.copyForKeep()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow">
+              📋 Copy for Keep Checkboxes
+            </button>
+            <button type="button" onclick="window.shareToKeep()" class="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow">
+              📲 Send to Keep
+            </button>
+          </div>
+        </div>
+
+        <!-- Built-in & AI Waste / Pack-Size Warnings -->
+        <div id="wasteWarningsBox" class="hidden bg-amber-950/60 border border-amber-700/60 rounded-xl p-3 text-xs text-amber-200 space-y-1"></div>
+        <div id="aiPackAuditBox" class="hidden bg-purple-950/60 border border-purple-700/60 rounded-xl p-3 text-xs text-purple-200 space-y-1.5"></div>
+
+        <!-- Custom One-Off Extra Input -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex gap-2">
+          <input id="customExtraInput" type="text" placeholder="Add one-off household/middle-aisle item (e.g. Tin foil, Calpol, Bin bags)..." 
+            class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.addCustomExtra(); }" />
+          <button type="button" onclick="window.addCustomExtra()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white rounded-lg border border-slate-700 shrink-0">+ Add Extra</button>
+        </div>
+
+        <div class="text-xs text-slate-400">
+          Supermarket Aisle Walkthrough Order (use ↑ ↓ arrows to match your local store):
+        </div>
+
+        <div id="groceryListContainer" class="space-y-3"></div>
+      </section>
+
+      <!-- SECTION 3: THE REGULARS & DISCOVERY BANK -->
+      <section class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold text-white">📖 The Regulars Bank</h2>
+            <p class="text-xs text-slate-400">Synced live to your Google Sheet database.</p>
+          </div>
+          <button type="button" onclick="window.openModal('newRecipeModal')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold">
+            + Paste / Add Dish
+          </button>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="flex flex-wrap gap-1.5" id="recipeFilters">
+          <button type="button" onclick="window.setRecipeFilter('ALL')" data-filter="ALL" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white">All</button>
+          <button type="button" onclick="window.setRecipeFilter('Rush')" data-filter="Rush" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300">&lt;20m Rush</button>
+          <button type="button" onclick="window.setRecipeFilter('Air Fryer')" data-filter="Air Fryer" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300">CRISPi Air Fryer</button>
+          <button type="button" onclick="window.setRecipeFilter('Blender')" data-filter="Blender" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300">Blender &amp; Soup Maker</button>
+          <button type="button" onclick="window.setRecipeFilter('Hob')" data-filter="Hob" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300">The Hob</button>
+        </div>
+
+        <div id="regularsList" class="space-y-2.5 max-h-[580px] overflow-y-auto pr-1"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL: PICK MEAL FOR DAY (FROM BOARD) -->
+  <div id="pickMealModal" class="modal-backdrop hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-white text-base" id="pickMealTitle">Select Meal</h3>
+        <button type="button" onclick="window.closeModal('pickMealModal')" class="px-2.5 py-1 bg-slate-800 rounded-lg text-slate-300 font-bold">✕</button>
+      </div>
+      <div class="space-y-2">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Utility Slots (Zero Shopping)</p>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="window.assignUtilitySlot('Freezer / Leftover Raid')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-sky-300 border border-slate-700">🧊 Freezer Raid</button>
+          <button type="button" onclick="window.assignUtilitySlot('Takeaway / Eating Out')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-purple-300 border border-slate-700">🍕 Takeaway</button>
+          <button type="button" onclick="window.assignUtilitySlot('Pantry / Toastie Raid')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-amber-300 border border-slate-700">🥪 Pantry Raid</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="modalRecipePickerList"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHOOSE DAY WHEN CLICKING "+ PLAN" ON A RECIPE -->
+  <div id="selectDayForRecipeModal" class="modal-backdrop hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-white text-base" id="selectDayModalTitle">Choose Day</h3>
+        <button type="button" onclick="window.closeModal('selectDayForRecipeModal')" class="px-2.5 py-1 bg-slate-800 rounded-lg text-slate-300 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-400">Which night would you like to plan <span id="selectDayRecipeName" class="text-emerald-400 font-bold"></span>?</p>
+      <div id="selectDayButtonsGrid" class="grid grid-cols-1 gap-2"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: COOK ONCE, EAT TWICE (BATCH / TRANSFORMER) -->
+  <div id="batchModal" class="modal-backdrop hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-white text-base">♻️ Cook Once, Eat Twice</h3>
+        <button type="button" onclick="window.closeModal('batchModal')" class="px-2.5 py-1 bg-slate-800 rounded-lg text-slate-300 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-300">Double core meat/protein on <span id="batchSourceDayName" class="font-bold text-emerald-400"></span> and link Day 2 leftovers to:</p>
+      <div>
+        <label class="text-xs text-slate-400 block mb-1">Target Follow-up Day:</label>
+        <select id="batchTargetDaySelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white"></select>
+      </div>
+      <div class="space-y-2" id="batchOptionsContainer"></div>
+      <button type="button" onclick="window.generateAiTransformersForBatch()" id="aiBatchGenBtn" class="w-full py-2 bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-bold">
+        ✨ Ask AI to Invent 2 New Leftover Transformers
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: KITCHEN COOKING MODE & AI PREVIEW -->
+  <div id="cookingModal" class="modal-backdrop hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-4 border-b border-slate-800 pb-3">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-bold" id="cookModalModePill">👨‍🍳 Kitchen Counter Mode</span>
+            <span id="wakeLockBadge" class="px-2.5 py-0.5 bg-sky-500/20 text-sky-300 rounded-full text-xs font-semibold">☀️ Screen Awake</span>
+          </div>
+          <h2 id="cookModalTitle" class="text-xl font-bold text-white mt-1">Recipe Title</h2>
+          <p id="cookModalMeta" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+        <button type="button" onclick="window.closeCookingMode()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-200 font-bold">✕ Close</button>
+      </div>
+
+      <!-- AI Preview Action Bar -->
+      <div id="previewActionBanner" class="hidden bg-emerald-950/60 border border-emerald-500/40 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs font-bold text-emerald-300">✨ Previewing AI-Invented Dish — Want to keep it?</span>
+        <div class="flex gap-2">
+          <button type="button" id="previewSaveRegBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold">+ Save to Regulars</button>
+          <button type="button" id="previewSlotWeekBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold">+ Choose Day in Week</button>
+        </div>
+      </div>
+
+      <!-- Hardware & Dirty Appliance Escape Hatch Bar -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-xs text-slate-300">
+            <span class="font-bold text-amber-400">🔥 Cooking Method:</span>
+            <span id="airFryerConversionText" class="ml-1">Tuned for CRISPi, Blender &amp; The Hob</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="window.aiRevertDirtyAppliances()" id="dirtyApplianceBtn" class="px-2.5 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold">
+              🔄 CRISPi / Blender Dirty? Use Oven &amp; Hob
+            </button>
+            <button type="button" onclick="window.aiConvertCookingSteps('CRISPi Air Fryer / Blender')" class="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold">
+              ⚡ Use CRISPi / Blender
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Scaled Ingredients</h4>
+          <ul id="cookModalIngredients" class="space-y-1.5 text-sm text-slate-200"></ul>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Step-by-Step Method</h4>
+          <ol id="cookModalSteps" class="space-y-2 text-sm text-slate-200 list-decimal list-inside"></ol>
+        </div>
+      </div>
+
+      <!-- Missing Ingredient / Substitute Assistant -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+        <div class="text-xs font-bold text-indigo-300">🧪 Missing an Ingredient? Ask AI Substitute Assistant (Checks Your Stock &amp; Spices)</div>
+        <div class="flex gap-2">
+          <input id="subQueryInput" type="text" placeholder="e.g. Out of sour cream / passata / cornflour — what can I use?" 
+            class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.askSubstituteAssistant(); }" />
+          <button type="button" onclick="window.askSubstituteAssistant()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shrink-0">
+            Ask AI
+          </button>
+        </div>
+        <div id="subAnswerBox" class="hidden text-xs text-slate-200 bg-slate-900 border border-slate-800 rounded-lg p-2.5 leading-relaxed"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SPICES & BASICS -->
+  <div id="staplesModal" class="modal-backdrop hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-white text-base">🧂 Spices &amp; Basics Checklist</h3>
+        <button type="button" onclick="window.closeModal('staplesModal')" class="px-2.5 py-1 bg-slate-800 rounded-lg text-slate-300 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-400">Checked items are background pantry assumptions (oil, salt, spices, stock cubes) so they never clutter your Cupboard chips or Google Keep list. Untick anything you've run out of.</p>
+      <div id="staplesChecklist" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto"></div>
+      <div class="flex gap-2">
+        <input id="newStapleInput" type="text" placeholder="Add spice/basic (e.g. Smoked Paprika)..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white" />
+        <button type="button" onclick="window.addNewStaple()" class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PASTE WEB RECIPE OR ADD DISH -->
+  <div id="newRecipeModal" class="modal-backdrop hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-3.5 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-white text-base">📋 Paste Any Recipe or Add Dish</h3>
+        <button type="button" onclick="window.closeModal('newRecipeModal')" class="px-2.5 py-1 bg-slate-800 rounded-lg text-slate-300 font-bold">✕</button>
+      </div>
+
+      <div class="bg-slate-950 border border-emerald-500/40 rounded-xl p-3 space-y-2">
+        <label class="text-xs font-bold text-emerald-400 block">✨ Paste Raw Recipe Text or Type Any Dish Name</label>
+        <p class="text-[11px] text-slate-400">AI automatically adapts the method for your <b>CRISPi air fryer</b>, <b>blender/soup maker</b>, and <b>the hob</b>.</p>
+        <textarea id="rawRecipePasteInput" rows="4" placeholder="Paste messy web recipe here or type e.g. 'Creamy Tomato & Chorizo Soup' or 'Crispy Honey Garlic Chicken'..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white outline-none"></textarea>
+        <button type="button" onclick="window.parseRawRecipeWithAI()" id="parseRecipeBtn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow">
+          🤖 Parse &amp; Auto-Adapt Recipe
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <input id="recName" type="text" placeholder="Dish Name" class="col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white" />
+        <select id="recPrep" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+          <option value="Rush">&lt;20m Rush</option>
+          <option value="Standard">30m Standard</option>
+          <option value="Weekend">Weekend Project</option>
+        </select>
+        <select id="recAppliance" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+          <option value="Air Fryer">CRISPi Air Fryer</option>
+          <option value="Blender">Blender &amp; Soup Maker</option>
+          <option value="Hob">The Hob</option>
+          <option value="One-Pot / Caravan">One-Pot / Caravan</option>
+          <option value="Oven">Oven</option>
+        </select>
+      </div>
+      <textarea id="recIngredientsRaw" rows="4" placeholder="Ingredients (Name | Qty | Unit | Aisle)&#10;Chicken Breasts | 500 | g | Meat &amp; Fish&#10;Bell Peppers | 2 | whole | Produce &amp; Bakery" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white"></textarea>
+      <textarea id="recStepsRaw" rows="3" placeholder="Cooking steps (one per line)..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white"></textarea>
+      <input id="recTransformerRaw" type="text" placeholder="Auto-generated Leftover Transformer (e.g. Loaded Chicken Quesadillas | Tortilla Wraps)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white" />
+      <button type="button" onclick="window.saveCustomRecipe()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl">Save Dish to Regulars (Syncs to Google Sheet)</button>
+    </div>
+  </div>
+
+  <!-- MODAL: FAMILY SYNC & GEMINI API KEY -->
+  <div id="syncModal" class="modal-backdrop hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-white text-base">☁️ Family Sync &amp; Gemini AI Key</h3>
+        <button type="button" onclick="window.closeModal('syncModal')" class="px-2.5 py-1 bg-slate-800 rounded-lg text-slate-300 font-bold">✕</button>
+      </div>
+
+      <div class="space-y-2.5 bg-slate-950 p-3.5 rounded-xl border border-sky-500/30">
+        <h4 class="text-xs font-bold text-sky-400">☁️ Google Sheet Live Database Webhook</h4>
+        <p class="text-xs text-slate-400">Paste the <code>/exec</code> URL from your Google Apps Script here. All recipes, inventory, and plans live in your Sheet.</p>
+        <input id="cloudUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white" />
+        <div class="flex gap-2">
+          <button type="button" onclick="window.saveCloudUrl()" class="flex-1 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg">Save Webhook</button>
+          <button type="button" onclick="window.pullFromCloud(true)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700">Pull Now</button>
+        </div>
+      </div>
+
+      <div class="space-y-2 bg-slate-950 p-3.5 rounded-xl border border-amber-500/40">
+        <h4 class="text-xs font-bold text-amber-400">🤖 Google Gemini API Key</h4>
+        <p class="text-xs text-slate-400">Stored locally and included when you share a Sync Link with Gaia so you only set it up once.</p>
+        <input id="apiKeyInput" type="password" placeholder="AQ.Ab8... or AIzaSy..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white" />
+        <button type="button" onclick="window.saveApiKey()" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg">Save Gemini Key</button>
+      </div>
+
+      <div class="space-y-2 bg-slate-950 p-3.5 rounded-xl border border-emerald-500/30">
+        <h4 class="text-xs font-bold text-emerald-400">📲 1-Tap Family Setup Link</h4>
+        <p class="text-xs text-slate-400">Shares your Google Sheet Webhook URL and Gemini API key in one link so another phone connects immediately.</p>
+        <div class="flex gap-2 pt-1">
+          <button type="button" onclick="window.shareSyncLink()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg">🔗 Share Setup Link</button>
+          <button type="button" onclick="window.importSyncCodePrompt()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700">Paste Code</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification (Top Centered) -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden bg-emerald-600 text-white px-5 py-2.5 rounded-xl shadow-2xl text-xs font-bold transition-all duration-200"></div>
+
+  <script>
+    (function() {
+      const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      
+      const HARDWARE_PROFILE_PROMPT = 
+        'MANDATORY KITCHEN APPLIANCE RULES FOR COOKING STEPS: ' +
+        'Never mention full model numbers (never write BLIXTSNABB or HB150UK). ' +
+        '1) Call the air fryer "the CRISPi" or "CRISPi air fryer": reference the glass container, inserting the crisper plate, and modes (Max Crisp, Air Fry, Bake, Recrisp). ' +
+        '2) Call the soup maker/food processor "the blender": for soups, sauces, or purees, specify using its built-in heating element (Sauté onions/garlic in the jug first, add stock/ingredients, and run the Smooth Soup or Chunky Soup setting). ' +
+        '3) Call the induction stove "the hob": never refer to zones by numbers. Reference practical induction features naturally (power levels 1-9, using Boost for rapid boiling or searing, Bridge mode for large pans/griddles, or Pre-Set Cooking mode where the front of the flexible area is high heat, middle is medium, and sliding the pan to the rear drops it to a simmer). Never mention a slow cooker.';
+
+      let state = {
+        inventoryChips: [],
+        weeklyPlan: {},
+        regularRecipes: [],
+        pantryStaples: [],
+        aisleOrder: ['Produce & Bakery', 'Meat & Fish', 'Chilled & Dairy', 'Pantry & Tins', 'Frozen', 'Household & Extras'],
+        extraItems: [],
+        geminiApiKey: '',
+        cloudSyncUrl: '',
+        lastUpdated: 0
+      };
+
+      let selectedZone = 'Auto';
+      let activeDayModalTarget = null;
+      let pendingRecipeToPlan = null;
+      let activeRecipeFilter = 'ALL';
+      let swapSourceDay = null;
+      let batchContext = null;
+      let currentCookingRecipe = null;
+      let wakeLockSentinel = null;
+      let recognition = null;
+      let lastAiInventedRecipes = [];
+      let cloudPushTimer = null;
+      let isPullingCloud = false;
+      let activeDiscoveredModel = null;
+
+      function normalizeWord(str) {
+        return String(str || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+      }
+
+      function zoneContainerId(zone) {
+        return zone === 'Out of Stock' ? 'OutOfStock' : zone;
+      }
+
+      function inferAisleLocal(itemText, zone) {
+        const low = String(itemText || '').toLowerCase();
+        if (zone === 'Freezer' || low.indexOf('frozen') !== -1 || low.indexOf('wedges') !== -1 || low.indexOf('fish finger') !== -1 || low.indexOf('peas') !== -1 || low.indexOf('ice ') !== -1) return 'Frozen';
+        if (low.indexOf('chicken') !== -1 || low.indexOf('beef') !== -1 || low.indexOf('mince') !== -1 || low.indexOf('pork') !== -1 || low.indexOf('sausage') !== -1 || low.indexOf('salmon') !== -1 || low.indexOf('steak') !== -1 || low.indexOf('bacon') !== -1) return 'Meat & Fish';
+        if (low.indexOf('milk') !== -1 || low.indexOf('cheese') !== -1 || low.indexOf('cheddar') !== -1 || low.indexOf('halloumi') !== -1 || low.indexOf('cream') !== -1 || low.indexOf('yoghurt') !== -1 || low.indexOf('yogurt') !== -1 || low.indexOf('butter') !== -1 || low.indexOf('chorizo') !== -1) return 'Chilled & Dairy';
+        if (low.indexOf('pepper') !== -1 || low.indexOf('onion') !== -1 || low.indexOf('potato') !== -1 || low.indexOf('carrot') !== -1 || low.indexOf('broccoli') !== -1 || low.indexOf('spinach') !== -1 || low.indexOf('lettuce') !== -1 || low.indexOf('banana') !== -1 || low.indexOf('apple') !== -1 || low.indexOf('bread') !== -1 || low.indexOf('wrap') !== -1 || low.indexOf('roll') !== -1 || low.indexOf('naan') !== -1 || low.indexOf('garlic') !== -1) return 'Produce & Bakery';
+        if (low.indexOf('foil') !== -1 || low.indexOf('bin') !== -1 || low.indexOf('bag') !== -1 || low.indexOf('toilet') !== -1 || low.indexOf('soap') !== -1 || low.indexOf('calpol') !== -1 || low.indexOf('spray') !== -1 || low.indexOf('pull-up') !== -1) return 'Household & Extras';
+        return 'Pantry & Tins';
+      }
+
+      function detectZoneLocal(itemText) {
+        if (selectedZone !== 'Auto') return selectedZone;
+        const low = String(itemText || '').toLowerCase();
+        if (low.indexOf('frozen') !== -1 || low.indexOf('freezer') !== -1 || low.indexOf('ice ') !== -1 || low.indexOf('wedges') !== -1 || low.indexOf('fish finger') !== -1 || low.indexOf('peas') !== -1) return 'Freezer';
+        if (low.indexOf('pasta') !== -1 || low.indexOf('pastor') !== -1 || low.indexOf('spaghetti') !== -1 || low.indexOf('macaroni') !== -1 || low.indexOf('penne') !== -1 || low.indexOf('tin') !== -1 || low.indexOf('rice') !== -1 || low.indexOf('jar') !== -1 || low.indexOf('beans') !== -1 || low.indexOf('wrap') !== -1 || low.indexOf('noodle') !== -1 || low.indexOf('pesto') !== -1 || low.indexOf('coconut') !== -1 || low.indexOf('puree') !== -1 || low.indexOf('cereal') !== -1 || low.indexOf('coffee') !== -1 || low.indexOf('flour') !== -1) return 'Cupboard';
+        return 'Fridge';
+      }
+
+      function fixVoiceTyposLocal(str) {
+        return String(str || '')
+          .replace(/\bpastor\b/gi, 'Pasta')
+          .replace(/\bpaster\b/gi, 'Pasta')
+          .replace(/\bmints\b/gi, 'Mince');
+      }
+
+      function migrateInventoryChips(chips) {
+        if (!Array.isArray(chips)) return [];
+        return chips.map(function(c) {
+          const ts = Date.now();
+          if (typeof c === 'string') {
+            const cleaned = fixVoiceTyposLocal(c);
+            const z = detectZoneLocal(cleaned);
+            return { name: cleaned, qty: 1, zone: z, aisle: inferAisleLocal(cleaned, z), addedAt: ts };
+          }
+          const cleanedName = fixVoiceTyposLocal(c.name || 'Item');
+          const z = c.zone || 'Fridge';
+          return {
+            name: cleanedName,
+            qty: typeof c.qty === 'number' ? c.qty : 1,
+            zone: z,
+            aisle: c.aisle || inferAisleLocal(cleanedName, z),
+            addedAt: c.addedAt || ts
+          };
+        });
+      }
+
+      function cleanRecipes(recipes) {
+        if (!Array.isArray(recipes)) return [];
+        return recipes.map(function(r) {
+          const copy = Object.assign({}, r);
+          delete copy.kidNote;
+          if (copy.appliance === 'Slow Cooker' || copy.appliance === 'Ninja Soup Maker') copy.appliance = 'Blender';
+          if (Array.isArray(copy.steps)) {
+            copy.steps = copy.steps.map(function(s) {
+              return String(s)
+                .replace(/BLIXTSNABB\s*induction\s*hob/gi, 'hob')
+                .replace(/BLIXTSNABB\s*hob/gi, 'hob')
+                .replace(/BLIXTSNABB/gi, 'hob')
+                .replace(/Ninja\s*Foodi\s*HB150UK/gi, 'blender')
+                .replace(/HB150UK/gi, 'blender');
+            });
+          }
+          return copy;
+        });
+      }
+
+      window.showToast = function(msg) {
+        const t = document.getElementById('toast');
+        if (!t) return;
+        t.textContent = msg;
+        t.classList.remove('hidden');
+        setTimeout(function() { t.classList.add('hidden'); }, 3200);
+      };
+
+      function updateAiKeyBadge() {
+        const dot = document.getElementById('aiKeyDot');
+        if (dot) dot.className = 'inline-block w-2 h-2 rounded-full ' + (state.geminiApiKey ? 'bg-emerald-400' : 'bg-amber-400');
+      }
+
+      async function resolveActiveGeminiModel(key) {
+        if (activeDiscoveredModel) return activeDiscoveredModel;
+        try {
+          const listRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + encodeURIComponent(key));
+          if (listRes.ok) {
+            const listData = await listRes.json();
+            if (Array.isArray(listData.models) && listData.models.length > 0) {
+              const valid = listData.models.filter(function(m) {
+                return Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.indexOf('generateContent') !== -1;
+              });
+              if (valid.length > 0) {
+                const flashModel = valid.find(function(m) {
+                  return m.name.toLowerCase().indexOf('flash') !== -1 && (m.name.toLowerCase().indexOf('3.') !== -1 || m.name.toLowerCase().indexOf('3-') !== -1);
+                }) || valid.find(function(m) { return m.name.toLowerCase().indexOf('flash') !== -1; });
+                activeDiscoveredModel = (flashModel || valid[0]).name.replace(/^models\//, '');
+                return activeDiscoveredModel;
+              }
+            }
+          }
+        } catch (e) {}
+        return 'gemini-3.8-flash';
+      }
+
+      async function callGeminiAPI(promptText, expectJson) {
+        if (!state.geminiApiKey) {
+          window.openModal('syncModal');
+          throw new Error('Please paste your Gemini API key in Sync & AI Key first!');
+        }
+        const key = state.geminiApiKey.trim();
+        let model = await resolveActiveGeminiModel(key);
+        const candidatePool = [model, 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3-flash'];
+        const modelsToTry = candidatePool.filter(function(item, pos) { return candidatePool.indexOf(item) === pos; });
+
+        let lastErr = null;
+        for (let i = 0; i < modelsToTry.length; i++) {
+          const currentModel = modelsToTry[i];
+          const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + currentModel + ':generateContent?key=' + encodeURIComponent(key);
+          const body = { contents: [{ parts: [{ text: promptText }] }] };
+          if (expectJson) body.generationConfig = { responseMimeType: 'application/json' };
+
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+              });
+              if (res.status === 404) { lastErr = new Error('Model not found'); break; }
+              if (res.status === 503 || res.status === 429) {
+                await new Promise(function(resolve) { setTimeout(resolve, 800); });
+                continue;
+              }
+              if (!res.ok) throw new Error('API Error ' + res.status);
+
+              const data = await res.json();
+              const replyText = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text;
+              if (!replyText) throw new Error('Empty response');
+
+              activeDiscoveredModel = currentModel;
+              if (expectJson) {
+                return JSON.parse(replyText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim());
+              }
+              return replyText.trim();
+            } catch (e) {
+              lastErr = e;
+              if (e.message && e.message.indexOf('API key not valid') !== -1) throw e;
+            }
+          }
+        }
+        throw (lastErr || new Error('Google servers could not process the request.'));
+      }
+
+      window.setZone = function(zone) {
+        selectedZone = zone;
+        ['Auto', 'Fridge', 'Freezer', 'Cupboard', 'Out of Stock'].forEach(function(z) {
+          const btn = document.getElementById(z === 'Out of Stock' ? 'zoneBtn-OutOfStock' : ('zoneBtn-' + z));
+          if (btn) {
+            btn.className = (z === zone) ? 'px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white' : 'px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400';
+          }
+        });
+      };
+
+      function isIngredientInHouse(ingName) {
+        const target = normalizeWord(ingName);
+        const targetWords = target.split(' ').filter(function(w) { return w.length > 2; });
+
+        for (let i = 0; i < state.pantryStaples.length; i++) {
+          const st = state.pantryStaples[i];
+          if (!st.active) continue;
+          const stNorm = normalizeWord(st.name);
+          if (stNorm.indexOf(target) !== -1 || target.indexOf(stNorm) !== -1) {
+            return { matched: true, source: 'Staple', zone: 'Cupboard' };
+          }
+        }
+
+        for (let j = 0; j < state.inventoryChips.length; j++) {
+          const chipObj = state.inventoryChips[j];
+          if (chipObj.zone === 'Out of Stock' || chipObj.qty <= 0) continue;
+          const chipNorm = normalizeWord(chipObj.name);
+          if (chipNorm.indexOf(target) !== -1 || target.indexOf(chipNorm) !== -1) {
+            return { matched: true, source: chipObj.name, zone: chipObj.zone };
+          }
+          for (let k = 0; k < targetWords.length; k++) {
+            const w = targetWords[k];
+            if (w !== 'fresh' && w !== 'frozen' && w !== 'pack' && w !== 'whole' && chipNorm.indexOf(w) !== -1) {
+              return { matched: true, source: chipObj.name, zone: chipObj.zone };
+            }
+          }
+        }
+        return { matched: false };
+      }
+
+      function upsertChipObject(name, qty, zone, aisle) {
+        const cleanName = name.charAt(0).toUpperCase() + name.slice(1);
+        const existing = state.inventoryChips.find(function(c) { return normalizeWord(c.name) === normalizeWord(cleanName); });
+        if (existing) {
+          existing.qty += qty;
+          existing.zone = zone;
+          existing.aisle = aisle || existing.aisle || inferAisleLocal(cleanName, zone);
+          if (zone !== 'Out of Stock') existing.addedAt = Date.now();
+        } else {
+          state.inventoryChips.push({
+            name: cleanName,
+            qty: qty,
+            zone: zone,
+            aisle: aisle || inferAisleLocal(cleanName, zone),
+            addedAt: Date.now()
+          });
+        }
+      }
+
+      window.addChipsFromInput = async function() {
+        const input = document.getElementById('chipInput');
+        const btn = document.getElementById('addChipBtn');
+        if (!input) return;
+        const rawText = input.value.trim();
+        if (!rawText) { window.showToast('Type or speak an item first!'); return; }
+        input.value = '';
+
+        if (selectedZone === 'Auto' && state.geminiApiKey) {
+          if (btn) { btn.textContent = '🤖 Sorting...'; btn.disabled = true; }
+          try {
+            const prompt = 'You are a UK kitchen inventory sorter. The user dictated or typed: "' + rawText + '". ' +
+              'Extract the quantity if stated (e.g. "3 tins of beans" -> qty: 3, "milk" -> qty: 1). Fix typos ("pastor" -> "Pasta", "mints" -> "Beef Mince"). ' +
+              'Split multiple items and classify each into its proper storage zone ("Fridge", "Freezer", "Cupboard") and Aldi/Lidl aisle ("Produce & Bakery", "Meat & Fish", "Chilled & Dairy", "Pantry & Tins", "Frozen", "Household & Extras"). ' +
+              'Return ONLY a JSON array: [{"name": "Clean Item Name", "qty": 1, "zone": "Cupboard", "aisle": "Pantry & Tins"}]';
+            const sortedItems = await callGeminiAPI(prompt, true);
+            if (Array.isArray(sortedItems) && sortedItems.length) {
+              sortedItems.forEach(function(item) {
+                const z = ['Fridge', 'Freezer', 'Cupboard', 'Out of Stock'].indexOf(item.zone) !== -1 ? item.zone : detectZoneLocal(item.name);
+                upsertChipObject(item.name || 'Item', item.qty || 1, z, item.aisle);
+              });
+              saveState();
+              window.showToast('AI sorted ' + sortedItems.length + ' item(s) into inventory!');
+              if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
+              return;
+            }
+          } catch (e) {
+          } finally {
+            if (btn) { btn.textContent = '+ Add'; btn.disabled = false; }
+          }
+        }
+
+        const items = String(rawText).split(/,|\band\b|\bplus\b|\bwith\b/i).map(function(s) { return fixVoiceTyposLocal(s).trim(); }).filter(function(s) { return s.length > 1; });
+        items.forEach(function(itemText) {
+          let qty = 1;
+          let name = itemText;
+          const match = itemText.match(/^(\d+)\s+(.*)/);
+          if (match) {
+            qty = parseInt(match[1], 10);
+            name = match[2];
+          }
+          const z = detectZoneLocal(name);
+          upsertChipObject(name, qty, z, inferAisleLocal(name, z));
+        });
+        saveState();
+        window.showToast('Added item(s) to inventory!');
+      };
+
+      // TWO-STAGE REMOVAL
+      window.removeChip = function(idx, ev) {
+        if (ev) ev.stopPropagation();
+        const chip = state.inventoryChips[idx];
+        if (!chip) return;
+        if (chip.zone !== 'Out of Stock') {
+          chip.zone = 'Out of Stock';
+          saveState();
+          window.showToast('Moved "' + chip.name + '" to Out of Stock');
+        } else {
+          state.inventoryChips.splice(idx, 1);
+          saveState();
+          window.showToast('Permanently deleted ' + chip.name);
+        }
+      };
+
+      window.incrementQty = function(idx, ev) {
+        if (ev) ev.stopPropagation();
+        if (state.inventoryChips[idx]) {
+          state.inventoryChips[idx].qty += 1;
+          saveState();
+        }
+      };
+
+      window.decrementQty = function(idx, ev) {
+        if (ev) ev.stopPropagation();
+        const chip = state.inventoryChips[idx];
+        if (chip) {
+          chip.qty -= 1;
+          if (chip.qty <= 0) {
+            chip.qty = 1;
+            chip.zone = 'Out of Stock';
+            window.showToast('Finished! Moved to Out of Stock');
+          }
+          saveState();
+        }
+      };
+
+      window.allowDrop = function(ev) { ev.preventDefault(); };
+      window.drag = function(ev, idx) { ev.dataTransfer.setData('chipIndex', String(idx)); };
+      window.dropToZone = function(ev, zoneName) {
+        ev.preventDefault();
+        ev.currentTarget.classList.remove('dragover');
+        const idx = parseInt(ev.dataTransfer.getData('chipIndex'), 10);
+        if (!isNaN(idx) && state.inventoryChips[idx]) {
+          if (state.inventoryChips[idx].zone === 'Out of Stock' && zoneName !== 'Out of Stock') {
+            state.inventoryChips[idx].addedAt = Date.now();
+          }
+          state.inventoryChips[idx].zone = zoneName;
+          saveState();
+          window.showToast('Moved ' + state.inventoryChips[idx].name + ' to ' + zoneName);
+        }
+      };
+
+      function renderChips() {
+        const now = Date.now();
+        const MS_PER_DAY = 86400000;
+
+        ['Fridge', 'Freezer', 'Cupboard', 'Out of Stock'].forEach(function(zone) {
+          const domSuffix = zoneContainerId(zone);
+          const container = document.getElementById('chips-' + domSuffix);
+          const countEl = document.getElementById('count-' + domSuffix);
+          if (!container) return;
+
+          const zoneItems = [];
+          state.inventoryChips.forEach(function(chip, idx) {
+            if ((chip.zone || 'Fridge') === zone) zoneItems.push({ chip: chip, idx: idx });
+          });
+
+          if (countEl) countEl.textContent = zoneItems.length + (zoneItems.length === 1 ? ' item' : ' items');
+          if (!zoneItems.length) {
+            container.innerHTML = '<span class="text-xs text-slate-600 italic">Drag items here...</span>';
+            return;
+          }
+
+          container.innerHTML = zoneItems.map(function(entry) {
+            const name = entry.chip.name;
+            const isLeftover = name.toLowerCase().indexOf('leftover:') === 0;
+            let badgeStyle = 'bg-slate-900 border-slate-700 text-slate-200 hover:border-emerald-500/50';
+            let freshnessBadge = '';
+
+            if (zone === 'Fridge' && entry.chip.addedAt) {
+              const daysOld = Math.floor((now - entry.chip.addedAt) / MS_PER_DAY);
+              if (daysOld >= 5) {
+                badgeStyle = 'fresh-red';
+                freshnessBadge = '<span class="bg-rose-900/80 text-rose-200 px-1.5 py-0.5 rounded text-[9px] font-bold mr-1">' + daysOld + 'd</span>';
+              } else if (daysOld >= 3) {
+                badgeStyle = 'fresh-amber';
+                freshnessBadge = '<span class="bg-amber-900/60 text-amber-200 px-1.5 py-0.5 rounded text-[9px] font-bold mr-1">' + daysOld + 'd</span>';
+              }
+            }
+
+            if (isLeftover) badgeStyle = 'bg-amber-500/20 border-amber-500/50 text-amber-200';
+            if (zone === 'Out of Stock') badgeStyle = 'bg-slate-900/70 border-rose-900/60 text-rose-200 opacity-80';
+
+            const qtyHtml = (zone !== 'Out of Stock') ? 
+              '<div class="flex items-center bg-slate-950 rounded border border-slate-700 ml-1.5 overflow-hidden">' +
+                '<button type="button" onclick="window.decrementQty(' + entry.idx + ', event)" class="px-1.5 py-0.5 text-slate-400 hover:bg-slate-800">-</button>' +
+                '<span class="px-1.5 text-[10px] font-bold text-sky-300">×' + (entry.chip.qty || 1) + '</span>' +
+                '<button type="button" onclick="window.incrementQty(' + entry.idx + ', event)" class="px-1.5 py-0.5 text-slate-400 hover:bg-slate-800">+</button>' +
+              '</div>' : '';
+
+            return '<div draggable="true" ondragstart="window.drag(event, ' + entry.idx + ')" class="chip flex items-center justify-between p-1.5 rounded-lg text-xs font-medium border transition ' + badgeStyle + '">' +
+              '<div class="flex items-center flex-1">' + freshnessBadge + '<span>' + name + '</span>' + qtyHtml + '</div>' +
+              '<button type="button" onclick="window.removeChip(' + entry.idx + ', event)" class="text-slate-400 hover:text-rose-400 text-lg px-2 ml-2 leading-none" title="Remove/Delete">✕</button>' +
+            '</div>';
+          }).join('');
+        });
+      }
+
+      window.toggleVoiceInput = function() {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) { window.showToast('Voice dictation requires Chrome on Android or Desktop.'); return; }
+        const btn = document.getElementById('micBtn');
+        if (!recognition) {
+          recognition = new SpeechRec();
+          recognition.lang = 'en-GB';
+          recognition.continuous = false;
+          recognition.onstart = function() { if (btn) btn.classList.add('pulse-mic'); };
+          recognition.onend = function() { if (btn) btn.classList.remove('pulse-mic'); };
+          recognition.onresult = function(e) {
+            const input = document.getElementById('chipInput');
+            if (input) input.value = e.results[0][0].transcript;
+            window.addChipsFromInput();
+          };
+        }
+        try { recognition.start(); } catch (err) { recognition.stop(); }
+      };
+
+      // Unallocated stock computation (subtracts already scheduled meals)
+      function getUnallocatedStockList() {
+        const activeChips = state.inventoryChips.filter(function(c) { return c.zone !== 'Out of Stock' && c.qty > 0; });
+        const tally = {};
+        activeChips.forEach(function(c) {
+          const k = normalizeWord(c.name);
+          tally[k] = { name: c.name, zone: c.zone, addedAt: c.addedAt, available: c.qty };
+        });
+
+        DAYS.forEach(function(day) {
+          const slot = state.weeklyPlan[day];
+          if (slot && slot.type === 'recipe' && !slot.cooked) {
+            const rec = state.regularRecipes.find(function(r) { return r.id === slot.recipeId; });
+            if (rec && rec.ingredients) {
+              rec.ingredients.forEach(function(ing) {
+                const k = normalizeWord(ing.name);
+                if (tally[k]) tally[k].available -= 1;
+              });
+            }
+          }
+        });
+
+        const unallocated = [];
+        const now = Date.now();
+        const MS_PER_DAY = 86400000;
+        Object.keys(tally).forEach(function(k) {
+          const item = tally[k];
+          if (item.available > 0) {
+            let suffix = '';
+            if (item.zone === 'Fridge' && item.addedAt) {
+              const daysOld = Math.floor((now - item.addedAt) / MS_PER_DAY);
+              if (daysOld >= 5) suffix = ' - EXPIRING (prioritize using this!)';
+              else if (daysOld >= 3) suffix = ' - needs using soon';
+            }
+            unallocated.push(item.name + ' (Qty: ' + item.available + ', ' + item.zone + suffix + ')');
+          }
+        });
+        return unallocated;
+      }
+
+      window.inventRecipesWithAI = async function() {
+        const box = document.getElementById('useItUpBox');
+        const btn = document.getElementById('aiInventBtn');
+        if (!box) return;
+
+        const unallocatedStockList = getUnallocatedStockList();
+        const staplesList = state.pantryStaples.filter(function(s) { return s.active; }).map(function(s) { return s.name; }).join(', ');
+
+        if (!unallocatedStockList.length) {
+          window.showToast('You have no unallocated stock left! Time to shop.');
+          return;
+        }
+        if (!state.geminiApiKey) {
+          window.openModal('syncModal');
+          window.showToast('Paste your Gemini API Key first!');
+          return;
+        }
+
+        box.classList.remove('hidden');
+        box.innerHTML = '<div class="text-xs text-emerald-300 font-semibold py-2 animate-pulse">🤖 Gemini Chef is inventing 3 recipes from unallocated stock...</div>';
+        if (btn) btn.disabled = true;
+
+        try {
+          const prompt = 'You are a practical UK family chef. Given these UNALLOCATED in-stock items: [' + unallocatedStockList.join('; ') + '] and basics: [' + staplesList + '], invent 3 family dinner recipes (for 4 people) that prioritize using up the in-stock and expiring items. ' +
+            HARDWARE_PROFILE_PROMPT + ' ' +
+            'Return ONLY a valid JSON array of 3 objects with this exact structure: ' +
+            '[{"name": "Dish Title", "emoji": "🌮", "prep": "Rush", "appliance": "Air Fryer", "usedStock": ["Item 1", "Item 2"], "steps": ["Step 1", "Step 2"], "transformers": [{"name": "Day 2 Leftover", "extraIngredients": [{"name": "Item", "amount": 1, "unit": "pack", "aisle": "Produce & Bakery"}]}], "ingredients": [{"name": "Ingredient", "amount": 500, "unit": "g", "aisle": "Meat & Fish", "isCoreProtein": true}]}]';
+
+          const recipes = await callGeminiAPI(prompt, true);
+          lastAiInventedRecipes = Array.isArray(recipes) ? recipes : [];
+
+          box.innerHTML = '<div class="flex items-center justify-between mb-2.5">' +
+            '<span class="text-xs font-bold text-emerald-400">🤖 3 Custom AI-Invented Recipes From Stock:</span>' +
+            '<button type="button" onclick="document.getElementById(\'useItUpBox\').classList.add(\'hidden\')" class="text-xs text-slate-400 font-bold">✕ Close</button>' +
+          '</div>' +
+          '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">' +
+            lastAiInventedRecipes.map(function(r, idx) {
+              const used = Array.isArray(r.usedStock) ? r.usedStock.join(', ') : 'In-stock items';
+              const transName = (r.transformers && r.transformers[0]) ? r.transformers[0].name : 'Direct Reheat';
+              return '<div class="bg-slate-950 border border-emerald-500/40 rounded-xl p-3 flex flex-col justify-between space-y-2.5">' +
+                '<div>' +
+                  '<div class="flex items-center justify-between gap-1.5 mb-1">' +
+                    '<span class="text-2xl">' + (r.emoji || '🍲') + '</span>' +
+                    '<div class="flex gap-1">' +
+                      '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-800 text-emerald-300">' + (r.prep || 'Rush') + '</span>' +
+                      '<span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-800 text-amber-300">' + (r.appliance || 'Air Fryer') + '</span>' +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="font-bold text-sm text-white">' + r.name + '</div>' +
+                  '<div class="text-[11px] text-emerald-400 mt-1">✓ Uses: ' + used + '</div>' +
+                  '<div class="text-[11px] text-indigo-300 mt-0.5">♻️ Eat Twice: ' + transName + '</div>' +
+                '</div>' +
+                '<div class="space-y-1.5 pt-1 border-t border-slate-800">' +
+                  '<button type="button" onclick="window.previewInventedRecipe(' + idx + ')" class="w-full py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded-lg text-[11px] font-bold">👁️ Preview Full Instructions</button>' +
+                  '<div class="flex gap-1.5">' +
+                    '<button type="button" onclick="window.saveInventedRecipe(' + idx + ', false)" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold">+ Regulars</button>' +
+                    '<button type="button" onclick="window.saveInventedRecipe(' + idx + ', true)" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold">+ Plan Day</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>';
+            }).join('') +
+          '</div>';
+        } catch (err) {
+          box.innerHTML = '<div class="text-xs text-rose-400 font-semibold py-1">⚠️ ' + err.message + '</div>';
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      };
+
+      window.previewInventedRecipe = function(idx) {
+        const raw = lastAiInventedRecipes[idx];
+        if (!raw) return;
+        currentCookingRecipe = {
+          rec: {
+            id: 'preview-' + idx,
+            name: raw.name || 'AI Custom Dish',
+            emoji: raw.emoji || '🍲',
+            prep: raw.prep || 'Standard',
+            appliance: raw.appliance || 'Air Fryer',
+            steps: raw.steps || [],
+            ingredients: raw.ingredients || []
+          },
+          scale: 1,
+          customSteps: null,
+          isPreviewIdx: idx
+        };
+        const banner = document.getElementById('previewActionBanner');
+        if (banner) {
+          banner.classList.remove('hidden');
+          document.getElementById('previewSaveRegBtn').onclick = function() {
+            window.saveInventedRecipe(idx, false);
+            window.closeCookingMode();
+          };
+          document.getElementById('previewSlotWeekBtn').onclick = function() {
+            window.closeCookingMode();
+            window.saveInventedRecipe(idx, true);
+          };
+        }
+        renderCookingModalContent();
+        window.openModal('cookingModal');
+      };
+
+      window.saveInventedRecipe = function(idx, openDaySelectorAfter) {
+        const raw = lastAiInventedRecipes[idx];
+        if (!raw) return;
+        const newId = 'ai-' + Date.now() + '-' + idx;
+        const newRec = cleanRecipes([{
+          id: newId,
+          name: raw.name || 'AI Custom Dish',
+          emoji: raw.emoji || '🍲',
+          prep: raw.prep || 'Standard',
+          appliance: raw.appliance || 'Air Fryer',
+          steps: raw.steps || ['Cook ingredients thoroughly.'],
+          transformers: raw.transformers || [],
+          ingredients: raw.ingredients || []
+        }])[0];
+        state.regularRecipes.unshift(newRec);
+        saveState();
+        if (openDaySelectorAfter) window.openSelectDayForRecipe(newId);
+        else window.showToast('Saved "' + newRec.name + '" to Google Sheet & Regulars!');
+      };
+
+      window.suggestFromChips = function() {
+        const box = document.getElementById('useItUpBox');
+        if (!box) return;
+        box.classList.remove('hidden');
+        const scored = state.regularRecipes.map(function(r) {
+          const matchedIngs = r.ingredients.filter(function(ing) { return isIngredientInHouse(ing.name).matched; });
+          return { recipe: r, hits: matchedIngs.length, matchedNames: matchedIngs.map(function(i) { return i.name; }) };
+        }).sort(function(a, b) { return b.hits - a.hits; }).slice(0, 3);
+
+        box.innerHTML = '<div class="flex items-center justify-between mb-2">' +
+          '<span class="text-xs font-bold text-amber-300">✨ Best Matches From Your Saved Regulars:</span>' +
+          '<button type="button" onclick="document.getElementById(\'useItUpBox\').classList.add(\'hidden\')" class="text-xs text-slate-400 font-bold">✕ Close</button>' +
+        '</div>' +
+        '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">' +
+          scored.map(function(s) {
+            return '<div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">' +
+              '<div>' +
+                '<div class="font-bold text-xs text-white">' + (s.recipe.emoji || '🍲') + ' ' + s.recipe.name + '</div>' +
+                '<div class="text-[11px] text-emerald-400 mt-1">Uses ' + s.hits + ' in-stock item(s): ' + (s.matchedNames.join(', ') || 'Spices & Basics') + '</div>' +
+              '</div>' +
+              '<div class="flex gap-1.5 mt-2.5">' +
+                '<button type="button" onclick="window.openCookingMode(\'' + s.recipe.id + '\', 1)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold">👁️ View</button>' +
+                '<button type="button" onclick="window.openSelectDayForRecipe(\'' + s.recipe.id + '\')" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold">+ Plan</button>' +
+              '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      };
+
+      window.openSelectDayForRecipe = function(recipeId) {
+        const rec = state.regularRecipes.find(function(r) { return r.id === recipeId; });
+        if (!rec) return;
+        pendingRecipeToPlan = recipeId;
+        const nameEl = document.getElementById('selectDayRecipeName');
+        if (nameEl) nameEl.textContent = (rec.emoji || '') + ' ' + rec.name;
+
+        const grid = document.getElementById('selectDayButtonsGrid');
+        if (grid) {
+          grid.innerHTML = DAYS.map(function(day) {
+            const currentSlot = state.weeklyPlan[day];
+            let currentLabel = 'Empty slot';
+            let statusColor = 'text-emerald-400';
+            if (currentSlot) {
+              statusColor = 'text-slate-400';
+              if (currentSlot.type === 'recipe') {
+                const existingRec = state.regularRecipes.find(function(x) { return x.id === currentSlot.recipeId; });
+                currentLabel = 'Currently: ' + (existingRec ? existingRec.name : 'Meal');
+              } else {
+                currentLabel = 'Currently: ' + (currentSlot.title || 'Planned');
+              }
+            }
+            return '<button type="button" onclick="window.confirmDayForRecipe(\'' + day + '\')" class="w-full p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 rounded-xl flex items-center justify-between text-left transition">' +
+              '<div>' +
+                '<div class="font-bold text-xs text-white">' + day + '</div>' +
+                '<div class="text-[11px] ' + statusColor + '">' + currentLabel + '</div>' +
+              '</div>' +
+              '<span class="px-2.5 py-1 bg-emerald-600 text-white text-xs font-bold rounded-lg">Slot Here</span>' +
+            '</button>';
+          }).join('');
+        }
+        window.openModal('selectDayForRecipeModal');
+      };
+
+      window.confirmDayForRecipe = function(day) {
+        if (!pendingRecipeToPlan) return;
+        const rec = state.regularRecipes.find(function(r) { return r.id === pendingRecipeToPlan; });
+        state.weeklyPlan[day] = { type: 'recipe', recipeId: pendingRecipeToPlan, batchScale: 1, cooked: false };
+        pendingRecipeToPlan = null;
+        window.closeModal('selectDayForRecipeModal');
+        saveState();
+        window.showToast('Planned ' + (rec ? rec.name : 'meal') + ' for ' + day + '!');
+      };
+
+      function getDefrostTomorrowWarning(dayIndex) {
+        const nextDay = DAYS[dayIndex + 1];
+        if (!nextDay) return null;
+        const nextSlot = state.weeklyPlan[nextDay];
+        if (!nextSlot || nextSlot.type !== 'recipe') return null;
+        const rec = state.regularRecipes.find(function(r) { return r.id === nextSlot.recipeId; });
+        if (!rec) return null;
+        const frozenItems = rec.ingredients.filter(function(i) {
+          return i.frozenCheck || (isIngredientInHouse(i.name).matched && isIngredientInHouse(i.name).zone === 'Freezer');
+        });
+        if (!frozenItems.length) return null;
+        return '❄️ Defrost tonight for ' + nextDay + ': ' + frozenItems.map(function(f) { return f.name; }).join(', ');
+      }
+
+      function renderWeekBoard() {
+        const grid = document.getElementById('weekGrid');
+        if (!grid) return;
+
+        grid.innerHTML = DAYS.map(function(day, idx) {
+          const slot = state.weeklyPlan[day];
+          const defrostNote = getDefrostTomorrowWarning(idx);
+          const isSwapSelected = swapSourceDay === day;
+          let bodyHtml = '';
+
+          if (!slot) {
+            bodyHtml = '<div class="flex-1 flex flex-col items-center justify-center py-6 border border-dashed border-slate-800 rounded-xl my-2">' +
+              '<p class="text-xs text-slate-500 mb-2">No dinner planned</p>' +
+              '<button type="button" onclick="window.openPickMealModal(\'' + day + '\')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold">+ Choose Meal</button>' +
+            '</div>';
+          } else if (slot.type === 'utility') {
+            bodyHtml = '<div class="my-2 p-3 bg-slate-950 border border-slate-800 rounded-xl flex-1 flex flex-col justify-between">' +
+              '<div>' +
+                '<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-sky-500/20 text-sky-300">Zero-Shop Night</span>' +
+                '<h4 class="font-bold text-sm text-white mt-1.5">' + slot.title + '</h4>' +
+                '<p class="text-xs text-slate-400 mt-1">No extra supermarket items needed.</p>' +
+              '</div>' +
+              '<div class="flex gap-1.5 mt-3">' +
+                '<button type="button" onclick="window.openPickMealModal(\'' + day + '\')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-lg">Change</button>' +
+                '<button type="button" onclick="window.clearDay(\'' + day + '\')" class="px-2.5 py-1.5 bg-rose-950 text-rose-300 text-xs font-bold rounded-lg">✕</button>' +
+              '</div>' +
+            '</div>';
+          } else if (slot.type === 'transformer') {
+            const extraText = (slot.extraIngredients && slot.extraIngredients.length)
+              ? '<p class="text-[11px] text-amber-300 mt-1">+ Only adds: ' + slot.extraIngredients.map(function(e) { return e.name; }).join(', ') + '</p>'
+              : '<p class="text-[11px] text-emerald-400 mt-1">£0 extra grocery items needed!</p>';
+            bodyHtml = '<div class="my-2 p-3 bg-emerald-950/30 border border-emerald-700/50 rounded-xl flex-1 flex flex-col justify-between">' +
+              '<div>' +
+                '<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-500/20 text-emerald-300">♻️ Linked to ' + slot.sourceDay + '</span>' +
+                '<h4 class="font-bold text-sm text-white mt-1.5">' + slot.title + '</h4>' +
+                '<p class="text-[11px] text-slate-400 mt-1">Base protein doubled &amp; cooked on ' + slot.sourceDay + '.</p>' +
+                extraText +
+              '</div>' +
+              '<div class="flex gap-1.5 mt-3">' +
+                '<button type="button" onclick="window.openPickMealModal(\'' + day + '\')" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-lg">Change</button>' +
+                '<button type="button" onclick="window.clearDay(\'' + day + '\')" class="px-2.5 py-1.5 bg-rose-950 text-rose-300 text-xs font-bold rounded-lg">✕</button>' +
+              '</div>' +
+            '</div>';
+          } else {
+            const rec = state.regularRecipes.find(function(r) { return r.id === slot.recipeId; }) || { name: 'Unknown', ingredients: [], emoji: '🍲' };
+            const inHouseCount = rec.ingredients.filter(function(i) { return isIngredientInHouse(i.name).matched; }).length;
+            bodyHtml = '<div class="my-2 bg-slate-950 border ' + (slot.cooked ? 'border-emerald-600/60 opacity-75' : 'border-slate-800') + ' rounded-xl flex-1 flex flex-col overflow-hidden">' +
+              '<div class="h-14 bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-800/80 relative flex items-center px-3">' +
+                '<div class="text-3xl drop-shadow-md">' + (rec.emoji || '🍲') + '</div>' +
+                '<div class="ml-3 flex-1">' +
+                  '<h4 class="font-bold text-sm text-white leading-tight line-clamp-1">' + rec.name + '</h4>' +
+                  '<p class="text-[10px] text-slate-400 mt-0.5">' + inHouseCount + ' of ' + rec.ingredients.length + ' items in stock</p>' +
+                '</div>' +
+              '</div>' +
+              '<div class="p-3 flex flex-col justify-between flex-1 space-y-2.5">' +
+                '<div class="flex flex-wrap items-center gap-1">' +
+                  '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-800 text-emerald-300">' + (rec.prep || 'Prep') + '</span>' +
+                  '<span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-800 text-amber-300">' + (rec.appliance || 'Appliance') + '</span>' +
+                  (slot.batchScale > 1 ? '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300">2x Batch</span>' : '') +
+                '</div>' +
+                '<div class="space-y-1.5 pt-2 border-t border-slate-800">' +
+                  '<div class="grid grid-cols-2 gap-1.5">' +
+                    '<button type="button" onclick="window.openCookingMode(\'' + rec.id + '\', ' + (slot.batchScale || 1) + ')" class="py-1.5 px-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[11px] font-bold">👨‍🍳 Cook View</button>' +
+                    '<button type="button" onclick="window.openBatchModal(\'' + day + '\', \'' + rec.id + '\')" class="py-1.5 px-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-[11px] font-bold">♻️ Eat Twice</button>' +
+                  '</div>' +
+                  '<div class="flex gap-1.5">' +
+                    '<button type="button" onclick="window.markDayCooked(\'' + day + '\')" class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 rounded-lg">' + (slot.cooked ? '✓ Cooked' : 'Mark Cooked') + '</button>' +
+                    '<button type="button" onclick="window.openPickMealModal(\'' + day + '\')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 rounded-lg">Change</button>' +
+                    '<button type="button" onclick="window.clearDay(\'' + day + '\')" class="px-2 py-1 bg-rose-950 text-rose-300 text-[11px] font-bold rounded-lg">✕</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          }
+
+          return '<div class="bg-slate-900 border ' + (isSwapSelected ? 'border-amber-400 ring-2 ring-amber-400/40' : 'border-slate-800') + ' rounded-2xl p-3.5 flex flex-col justify-between shadow">' +
+            '<div>' +
+              '<div class="flex items-center justify-between">' +
+                '<span class="font-bold text-sm text-white">' + day + '</span>' +
+                '<button type="button" onclick="window.handleDaySwap(\'' + day + '\')" class="text-[11px] px-2 py-0.5 rounded font-semibold ' + (isSwapSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-slate-300') + '">' + (isSwapSelected ? 'Tap Target Day...' : '⇄ Swap Day') + '</button>' +
+              '</div>' +
+              bodyHtml +
+            '</div>' +
+            (defrostNote ? '<div class="mt-1 px-2.5 py-1.5 bg-sky-950/80 border border-sky-700/60 rounded-lg text-[11px] text-sky-200 font-medium">' + defrostNote + '</div>' : '') +
+          '</div>';
+        }).join('');
+      }
+
+      window.handleDaySwap = function(day) {
+        if (!swapSourceDay) {
+          swapSourceDay = day;
+          renderWeekBoard();
+          window.showToast('Now tap another day card to swap with ' + day);
+        } else if (swapSourceDay === day) {
+          swapSourceDay = null;
+          renderWeekBoard();
+        } else {
+          const from = swapSourceDay;
+          const temp = state.weeklyPlan[from];
+          state.weeklyPlan[from] = state.weeklyPlan[day];
+          state.weeklyPlan[day] = temp;
+          DAYS.forEach(function(d) {
+            const sl = state.weeklyPlan[d];
+            if (sl && sl.type === 'transformer') {
+              if (sl.sourceDay === from) sl.sourceDay = day;
+              else if (sl.sourceDay === day) sl.sourceDay = from;
+            }
+          });
+          swapSourceDay = null;
+          saveState();
+          checkPerishableSwapImpact(from, day);
+        }
+      };
+
+      function checkPerishableSwapImpact(dayA, dayB) {
+        const idxA = DAYS.indexOf(dayA);
+        const idxB = DAYS.indexOf(dayB);
+        const laterDay = idxA > idxB ? dayA : dayB;
+        const laterIdx = Math.max(idxA, idxB);
+        const slot = state.weeklyPlan[laterDay];
+        const box = document.getElementById('swapAuditBox');
+
+        if (laterIdx >= 4 && slot && slot.type === 'recipe') {
+          const rec = state.regularRecipes.find(function(r) { return r.id === slot.recipeId; });
+          if (rec) {
+            const freshMeats = rec.ingredients.filter(function(i) {
+              return (i.aisle === 'Meat & Fish') && (!isIngredientInHouse(i.name).matched || isIngredientInHouse(i.name).zone !== 'Freezer');
+            });
+            if (freshMeats.length && box) {
+              box.classList.remove('hidden');
+              box.innerHTML = '<div class="flex items-center justify-between"><span>⚠️ <b>Swap Alert:</b> Moving <b>' + rec.name + '</b> to <b>' + laterDay + '</b> pushes fresh <b>' + freshMeats.map(function(m) { return m.name; }).join(', ') + '</b> late into the week. Pop it in the Freezer now and defrost the night before!</span><button type="button" onclick="document.getElementById(\'swapAuditBox\').classList.add(\'hidden\')" class="ml-2 font-bold">✕</button></div>';
+              return;
+            }
+          }
+        }
+        window.showToast('Swapped ' + dayA + ' with ' + dayB + '!');
+      }
+
+      window.runSwapFreshnessCheck = async function() {
+        const box = document.getElementById('swapAuditBox');
+        if (!box) return;
+        box.classList.remove('hidden');
+
+        const summary = DAYS.map(function(d) {
+          const sl = state.weeklyPlan[d];
+          if (!sl) return d + ': Empty';
+          if (sl.type === 'utility') return d + ': ' + sl.title;
+          if (sl.type === 'transformer') return d + ': ' + sl.title + ' (Leftover from ' + sl.sourceDay + ')';
+          const r = state.regularRecipes.find(function(x) { return x.id === sl.recipeId; });
+          return d + ': ' + (r ? r.name : 'Meal');
+        }).join('; ');
+
+        if (!state.geminiApiKey) {
+          box.innerHTML = '<span>🔍 <b>Local Check:</b> Ensure fresh meats for Fri–Sun are frozen.</span>';
+          return;
+        }
+
+        box.innerHTML = '<span class="animate-pulse">🔍 AI is checking perishability, defrost timing, and leftover order...</span>';
+        try {
+          const res = await callGeminiAPI('Review this 7-day UK family dinner schedule: [' + summary + '] and current stock: [' + state.inventoryChips.filter(function(c) { return c.zone !== 'Out of Stock'; }).map(function(c) { return c.name + ' (' + c.zone + ')'; }).join(', ') + ']. In 2 concise bullet points, flag any fresh meat perishability risks, broken leftover links, or a smart day swap to save midweek time.', false);
+          box.innerHTML = '<div class="flex items-start justify-between gap-2"><div class="whitespace-pre-line">' + res + '</div><button type="button" onclick="document.getElementById(\'swapAuditBox\').classList.add(\'hidden\')" class="font-bold">✕</button></div>';
+        } catch (e) {
+          box.innerHTML = '<span>⚠️ ' + e.message + '</span>';
+        }
+      };
+
+      window.clearDay = function(day) { state.weeklyPlan[day] = null; saveState(); };
+      window.clearWeek = function() { DAYS.forEach(function(d) { state.weeklyPlan[d] = null; }); saveState(); window.showToast('Cleared weekly schedule'); };
+
+      window.markDayCooked = function(day) {
+        const slot = state.weeklyPlan[day];
+        if (!slot || slot.type !== 'recipe') return;
+        const rec = state.regularRecipes.find(function(r) { return r.id === slot.recipeId; });
+        if (!rec) return;
+
+        slot.cooked = !slot.cooked;
+        if (slot.cooked) {
+          rec.ingredients.forEach(function(ing) {
+            const idx = state.inventoryChips.findIndex(function(c) {
+              return c.zone !== 'Out of Stock' && c.qty > 0 && (
+                normalizeWord(c.name).indexOf(normalizeWord(ing.name)) !== -1 ||
+                normalizeWord(ing.name).indexOf(normalizeWord(c.name)) !== -1
+              );
+            });
+            if (idx > -1) {
+              state.inventoryChips[idx].qty -= 1;
+              if (state.inventoryChips[idx].qty <= 0) {
+                state.inventoryChips[idx].qty = 1;
+                state.inventoryChips[idx].zone = 'Out of Stock';
+              }
+            }
+          });
+          if (slot.batchScale > 1) {
+            const leftoverTag = 'Leftover: ' + rec.name;
+            if (!state.inventoryChips.some(function(c) { return c.name === leftoverTag; })) {
+              state.inventoryChips.unshift({ name: leftoverTag, qty: 1, zone: 'Fridge', aisle: 'Chilled & Dairy', addedAt: Date.now() });
+            }
+          }
+          window.showToast('Marked cooked & subtracted ingredients!');
+        }
+        saveState();
+      };
+
+      window.openPickMealModal = function(day) {
+        activeDayModalTarget = day;
+        const titleEl = document.getElementById('pickMealTitle');
+        if (titleEl) titleEl.textContent = 'Choose Meal for ' + day;
+        const list = document.getElementById('modalRecipePickerList');
+        if (list) {
+          list.innerHTML = state.regularRecipes.map(function(r) {
+            return '<div onclick="window.assignRecipeToDay(\'' + r.id + '\')" class="p-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl cursor-pointer flex items-center justify-between transition">' +
+              '<div class="flex items-center gap-2.5">' +
+                '<span class="text-xl">' + (r.emoji || '🍲') + '</span>' +
+                '<div><div class="font-bold text-sm text-white">' + r.name + '</div><div class="text-xs text-slate-400">' + r.prep + ' • ' + r.appliance + '</div></div>' +
+              '</div>' +
+              '<span class="px-2.5 py-1 bg-emerald-600 text-white text-xs font-bold rounded-lg">Select</span>' +
+            '</div>';
+          }).join('');
+        }
+        window.openModal('pickMealModal');
+      };
+
+      window.assignRecipeToDay = function(recipeId) {
+        if (!activeDayModalTarget) return;
+        state.weeklyPlan[activeDayModalTarget] = { type: 'recipe', recipeId: recipeId, batchScale: 1, cooked: false };
+        window.closeModal('pickMealModal');
+        saveState();
+      };
+
+      window.assignUtilitySlot = function(title) {
+        if (!activeDayModalTarget) return;
+        state.weeklyPlan[activeDayModalTarget] = { type: 'utility', title: title };
+        window.closeModal('pickMealModal');
+        saveState();
+      };
+
+      window.openBatchModal = function(sourceDay, recipeId) {
+        const rec = state.regularRecipes.find(function(r) { return r.id === recipeId; });
+        if (!rec) return;
+        batchContext = { sourceDay: sourceDay, recipeId: recipeId };
+        const srcEl = document.getElementById('batchSourceDayName');
+        if (srcEl) srcEl.textContent = sourceDay + ' (' + rec.name + ')';
+        const nextDay = DAYS[(DAYS.indexOf(sourceDay) + 1) % 7];
+        const select = document.getElementById('batchTargetDaySelect');
+        if (select) {
+          select.innerHTML = DAYS.filter(function(d) { return d !== sourceDay; }).map(function(d) {
+            return '<option value="' + d + '" ' + (d === nextDay ? 'selected' : '') + '>' + d + '</option>';
+          }).join('');
+        }
+        renderBatchOptionsList(rec, sourceDay);
+        window.openModal('batchModal');
+      };
+
+      function renderBatchOptionsList(rec, sourceDay) {
+        const container = document.getElementById('batchOptionsContainer');
+        if (!container) return;
+        const transHtml = (rec.transformers || []).map(function(t, idx) {
+          const extras = (t.extraIngredients && t.extraIngredients.length) ? t.extraIngredients.map(function(e) { return e.name; }).join(', ') : 'None';
+          return '<button type="button" onclick="window.applyBatchLink(\'transformer\', ' + idx + ')" class="w-full text-left p-3 bg-slate-950 hover:bg-slate-800 border border-emerald-500/40 rounded-xl transition">' +
+            '<div class="text-xs font-bold text-emerald-400">🔄 Transformer Meal</div>' +
+            '<div class="text-sm font-bold text-white mt-0.5">' + t.name + '</div>' +
+            '<div class="text-[11px] text-slate-400 mt-0.5">Doubles ' + sourceDay + ' meat; only adds: ' + extras + '</div>' +
+          '</button>';
+        }).join('');
+
+        container.innerHTML = '<button type="button" onclick="window.applyBatchLink(\'reheat\', 0)" class="w-full text-left p-3 bg-slate-950 hover:bg-slate-800 border border-slate-700 rounded-xl transition">' +
+          '<div class="text-xs font-bold text-sky-400">🍲 Direct Reheat (Zero Extra Prep)</div>' +
+          '<div class="text-sm font-bold text-white mt-0.5">Reheat: ' + rec.name + '</div>' +
+          '<div class="text-[11px] text-slate-400 mt-0.5">Doubles ' + sourceDay + ' batch quantities. £0 extra ingredients on Day 2.</div>' +
+        '</button>' + transHtml;
+      }
+
+      window.generateAiTransformersForBatch = async function() {
+        if (!batchContext) return;
+        const rec = state.regularRecipes.find(function(r) { return r.id === batchContext.recipeId; });
+        if (!rec) return;
+        const btn = document.getElementById('aiBatchGenBtn');
+        if (btn) { btn.textContent = '🤖 Generating leftover ideas...'; btn.disabled = true; }
+
+        try {
+          const prompt = 'For the family dinner "' + rec.name + '" (ingredients: ' + rec.ingredients.map(function(i) { return i.name; }).join(', ') + '), invent 2 fast, tasty Day-2 leftover transformer meals using the CRISPi, Blender, or Hob. Return ONLY a JSON array of 2 objects: [{"name": "Transformed Meal Name", "extraIngredients": [{"name": "Extra Item", "amount": 1, "unit": "pack", "aisle": "Produce & Bakery"}]}]';
+          const newTrans = await callGeminiAPI(prompt, true);
+          if (Array.isArray(newTrans)) {
+            rec.transformers = (rec.transformers || []).concat(newTrans);
+            saveState();
+            renderBatchOptionsList(rec, batchContext.sourceDay);
+            window.showToast('Added 2 AI leftover transformer options!');
+          }
+        } catch (err) {
+          window.showToast(err.message);
+        } finally {
+          if (btn) { btn.textContent = '✨ Ask AI to Invent 2 New Leftover Transformers'; btn.disabled = false; }
+        }
+      };
+
+      window.applyBatchLink = function(mode, transIdx) {
+        if (!batchContext) return;
+        const targetDay = document.getElementById('batchTargetDaySelect') ? document.getElementById('batchTargetDaySelect').value : 'Tuesday';
+        const rec = state.regularRecipes.find(function(r) { return r.id === batchContext.recipeId; });
+        if (!rec) return;
+
+        if (state.weeklyPlan[batchContext.sourceDay]) state.weeklyPlan[batchContext.sourceDay].batchScale = 2;
+        if (mode === 'reheat') {
+          state.weeklyPlan[targetDay] = { type: 'transformer', sourceDay: batchContext.sourceDay, recipeId: rec.id, title: 'Reheat: ' + rec.name, extraIngredients: [] };
+        } else {
+          state.weeklyPlan[targetDay] = { type: 'transformer', sourceDay: batchContext.sourceDay, recipeId: rec.id, title: rec.transformers[transIdx].name, extraIngredients: rec.transformers[transIdx].extraIngredients || [] };
+        }
+        window.closeModal('batchModal');
+        saveState();
+        window.showToast('Doubled ' + batchContext.sourceDay + ' & linked ' + targetDay + '!');
+      };
+
+      function buildCompiledGroceryList() {
+        const compiled = {};
+        const warnings = [];
+
+        DAYS.forEach(function(day) {
+          const slot = state.weeklyPlan[day];
+          if (!slot) return;
+          if (slot.type === 'recipe') {
+            const rec = state.regularRecipes.find(function(r) { return r.id === slot.recipeId; });
+            if (!rec) return;
+            const scale = slot.batchScale || 1;
+            rec.ingredients.forEach(function(ing) {
+              if (ing.partialWarning && scale === 1) warnings.push(day + ' (' + rec.name + '): ' + ing.partialWarning);
+              if (isIngredientInHouse(ing.name).matched) return;
+              const key = normalizeWord(ing.name);
+              if (!compiled[key]) compiled[key] = { name: ing.name, amount: 0, unit: ing.unit || '', aisle: ing.aisle || 'Pantry & Tins', days: [] };
+              compiled[key].amount += (ing.amount * scale);
+              const shortDay = day.slice(0, 3);
+              if (compiled[key].days.indexOf(shortDay) === -1) compiled[key].days.push(shortDay);
+            });
+          } else if (slot.type === 'transformer' && slot.extraIngredients) {
+            slot.extraIngredients.forEach(function(ing) {
+              if (isIngredientInHouse(ing.name).matched) return;
+              const key = normalizeWord(ing.name);
+              if (!compiled[key]) compiled[key] = { name: ing.name, amount: 0, unit: ing.unit || '', aisle: ing.aisle || 'Produce & Bakery', days: [] };
+              compiled[key].amount += (ing.amount || 1);
+              const shortDay = day.slice(0, 3);
+              if (compiled[key].days.indexOf(shortDay) === -1) compiled[key].days.push(shortDay);
+            });
+          }
+        });
+
+        state.inventoryChips.forEach(function(chip) {
+          if (chip.zone !== 'Out of Stock') return;
+          const key = normalizeWord(chip.name);
+          if (!compiled[key]) {
+            compiled[key] = { name: chip.name, amount: chip.qty > 1 ? chip.qty : 0, unit: '', aisle: chip.aisle || inferAisleLocal(chip.name, 'Fridge'), days: ['Out of Stock'], isRestockChip: true };
+          } else if (compiled[key].days.indexOf('Restock') === -1) {
+            compiled[key].days.push('Restock');
+          }
+        });
+
+        state.extraItems.forEach(function(extra) {
+          const key = 'extra_' + normalizeWord(extra);
+          compiled[key] = { name: extra, amount: 0, unit: '', aisle: inferAisleLocal(extra, 'Cupboard') === 'Pantry & Tins' ? 'Household & Extras' : inferAisleLocal(extra, 'Cupboard'), days: ['Extra'], isExtra: true };
+        });
+
+        return { items: Object.values(compiled), warnings: warnings };
+      }
+
+      window.runAiPackAudit = async function() {
+        const box = document.getElementById('aiPackAuditBox');
+        const btn = document.getElementById('aiPackAuditBtn');
+        if (!box) return;
+
+        const list = buildCompiledGroceryList().items;
+        if (!list.length) return window.showToast('Shopping list is empty!');
+
+        box.classList.remove('hidden');
+        box.innerHTML = '<div class="animate-pulse">✨ AI is auditing your grocery quantities against standard Aldi/Lidl UK pack sizes...</div>';
+        if (btn) btn.disabled = true;
+
+        try {
+          const ingSummary = list.map(function(i) {
+            return i.name + (i.amount ? (' ' + i.amount + i.unit) : '') + ' (' + i.days.join('/') + ')';
+          }).join(', ');
+          const prompt = 'Inspect this UK family Aldi/Lidl grocery list: [' + ingSummary + ']. Identify items where standard UK supermarket pack sizes will leave leftover half-packs, and suggest a quick way to use the remainder in the CRISPi or Blender so nothing goes in the bin. Keep it to 2-3 short bullet points.';
+          const auditText = await callGeminiAPI(prompt, false);
+          box.innerHTML = '<div class="flex items-start justify-between gap-2"><div><div class="font-bold text-purple-300 mb-1">✨ AI Supermarket Pack-Size &amp; Waste Audit:</div><div class="whitespace-pre-line">' + auditText + '</div></div><button type="button" onclick="document.getElementById(\'aiPackAuditBox\').classList.add(\'hidden\')" class="font-bold">✕</button></div>';
+        } catch (err) {
+          box.innerHTML = '<div>⚠️ ' + err.message + '</div>';
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      };
+
+      window.moveAisle = function(idx, dir) {
+        const target = idx + dir;
+        if (target < 0 || target >= state.aisleOrder.length) return;
+        const temp = state.aisleOrder[idx];
+        state.aisleOrder[idx] = state.aisleOrder[target];
+        state.aisleOrder[target] = temp;
+        saveState();
+      };
+
+      window.addCustomExtra = function() {
+        const inp = document.getElementById('customExtraInput');
+        if (!inp || !inp.value.trim()) return;
+        state.extraItems.push(inp.value.trim());
+        inp.value = '';
+        saveState();
+        window.showToast('Added to shopping list!');
+      };
+
+      window.removeExtraFromList = function(extraName) {
+        const idx = state.extraItems.indexOf(extraName);
+        if (idx > -1) {
+          state.extraItems.splice(idx, 1);
+          saveState();
+        }
+      };
+
+      function renderGrocerySection() {
+        const result = buildCompiledGroceryList();
+        const items = result.items;
+        const warnings = result.warnings;
+
+        const warnBox = document.getElementById('wasteWarningsBox');
+        if (warnBox) {
+          if (warnings.length) {
+            warnBox.classList.remove('hidden');
+            warnBox.innerHTML = '<div class="font-bold text-amber-300 mb-1">⚠️ Pack-Size &amp; Leftover Ingredient Alerts:</div>' + warnings.map(function(w) { return '<div>• ' + w + '</div>'; }).join('');
+          } else {
+            warnBox.classList.add('hidden');
+          }
+        }
+
+        const container = document.getElementById('groceryListContainer');
+        if (!container) return;
+        if (!items.length) {
+          container.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">All required ingredients are covered by your active stock &amp; Spices/Basics!</div>';
+          return;
+        }
+
+        container.innerHTML = state.aisleOrder.map(function(aisle, idx) {
+          const aisleItems = items.filter(function(i) { return i.aisle === aisle; });
+          if (!aisleItems.length) return '';
+          return '<div class="bg-slate-950 border border-slate-800 rounded-xl p-3">' +
+            '<div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">' +
+              '<span class="text-xs font-bold uppercase tracking-wider text-emerald-400">' + (idx + 1) + '. ' + aisle + '</span>' +
+              '<div class="flex gap-1">' +
+                '<button type="button" onclick="window.moveAisle(' + idx + ', -1)" class="px-2 py-0.5 bg-slate-800 rounded text-xs text-slate-200 font-bold">↑</button>' +
+                '<button type="button" onclick="window.moveAisle(' + idx + ', 1)" class="px-2 py-0.5 bg-slate-800 rounded text-xs text-slate-200 font-bold">↓</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">' +
+              aisleItems.map(function(item) {
+                const label = item.amount ? (item.name + ' (' + item.amount + (item.unit ? ' ' + item.unit : '') + ')') : item.name;
+                const delBtn = item.isExtra ? ('<button type="button" onclick="window.removeExtraFromList(\'' + item.name.replace(/'/g, "\\'") + '\')" class="text-rose-400 text-[10px] ml-2 font-bold">✕</button>') : '';
+                return '<label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-900 cursor-pointer text-xs">' +
+                  '<div class="flex items-center gap-2">' +
+                    '<input type="checkbox" onchange="this.parentElement.classList.toggle(\'line-through\'); this.parentElement.classList.toggle(\'text-slate-500\')" class="rounded bg-slate-800 border-slate-700 text-emerald-500" />' +
+                    '<span class="text-slate-200 font-medium">' + label + '</span>' +
+                  '</div>' +
+                  '<div class="flex items-center"><span class="text-[10px] text-slate-500">' + item.days.join(', ') + '</span>' + delBtn + '</div>' +
+                '</label>';
+              }).join('') +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      function formatPlainKeepText() {
+        const items = buildCompiledGroceryList().items;
+        if (!items.length) return '';
+        const lines = [];
+        state.aisleOrder.forEach(function(aisle) {
+          items.filter(function(i) { return i.aisle === aisle; }).forEach(function(item) {
+            const qty = item.amount ? (' (' + item.amount + (item.unit ? ' ' + item.unit : '') + ')') : '';
+            lines.push(item.name + qty);
+          });
+        });
+        return lines.join('\n');
+      }
+
+      window.copyForKeep = function() {
+        const text = formatPlainKeepText();
+        if (!text) return window.showToast('Shopping list is empty!');
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text);
+        window.showToast('Copied! Paste into a Google Keep checklist — every line becomes a checkbox.');
+      };
+
+      window.shareToKeep = async function() {
+        const text = formatPlainKeepText();
+        if (!text) return window.showToast('Shopping list is empty!');
+        if (navigator.share) {
+          try { await navigator.share({ title: 'Aldi / Lidl Shopping List', text: text }); return; } catch (err) {}
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text);
+        window.open('https://keep.google.com/', '_blank');
+        window.showToast('Copied list & opening Google Keep...');
+      };
+
+      window.setRecipeFilter = function(filter) {
+        activeRecipeFilter = filter;
+        document.querySelectorAll('.filter-btn').forEach(function(btn) {
+          btn.className = (btn.getAttribute('data-filter') === filter) ? 'filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white' : 'filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300';
+        });
+        renderRegularsBank();
+      };
+
+      function renderRegularsBank() {
+        const list = document.getElementById('regularsList');
+        if (!list) return;
+        if (!state.regularRecipes.length) {
+          list.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">Your Regulars Bank is empty.<br>Recipes will pull from Google Sheets if connected!</div>';
+          return;
+        }
+
+        const filtered = state.regularRecipes.filter(function(r) {
+          return activeRecipeFilter === 'ALL' || r.prep === activeRecipeFilter || r.appliance === activeRecipeFilter;
+        });
+
+        list.innerHTML = filtered.map(function(r) {
+          const transCount = (r.transformers && r.transformers.length) ? r.transformers.length : 0;
+          return '<div class="p-3 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl space-y-2 transition">' +
+            '<div class="flex items-start gap-3">' +
+              '<div class="w-12 h-12 shrink-0 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-xl flex items-center justify-center text-2xl shadow-inner">' + (r.emoji || '🍲') + '</div>' +
+              '<div class="flex-1">' +
+                '<h4 class="font-bold text-sm text-white leading-tight">' + r.name + '</h4>' +
+                '<div class="flex flex-wrap gap-1.5 mt-1.5">' +
+                  '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-800 text-emerald-300">' + (r.prep || 'Prep') + '</span>' +
+                  '<span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-800 text-amber-300">' + (r.appliance || 'Appliance') + '</span>' +
+                  (transCount ? ('<span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-indigo-950 text-indigo-300">♻️ ' + transCount + ' Eat-Twice</span>') : '') +
+                '</div>' +
+              '</div>' +
+              '<div class="flex gap-1 shrink-0">' +
+                '<button type="button" onclick="window.openCookingMode(\'' + r.id + '\', 1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold" title="Cook View">👨‍🍳</button>' +
+                '<button type="button" onclick="window.openSelectDayForRecipe(\'' + r.id + '\')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold">+ Plan</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      window.openCookingMode = async function(recipeId, scale) {
+        const rec = state.regularRecipes.find(function(r) { return r.id === recipeId; });
+        if (!rec) return;
+        currentCookingRecipe = { rec: rec, scale: scale || 1, customSteps: null, isPreviewIdx: null };
+        const banner = document.getElementById('previewActionBanner');
+        if (banner) banner.classList.add('hidden');
+        const subBox = document.getElementById('subAnswerBox');
+        if (subBox) subBox.classList.add('hidden');
+        const txt = document.getElementById('airFryerConversionText');
+        if (txt) txt.textContent = 'Tuned for The CRISPi, The Blender & The Hob';
+        renderCookingModalContent();
+        window.openModal('cookingModal');
+        if ('wakeLock' in navigator) {
+          try { wakeLockSentinel = await navigator.wakeLock.request('screen'); } catch (e) {}
+        }
+      };
+
+      function renderCookingModalContent() {
+        if (!currentCookingRecipe) return;
+        const rec = currentCookingRecipe.rec;
+        const scale = currentCookingRecipe.scale;
+        document.getElementById('cookModalTitle').textContent = (rec.emoji ? rec.emoji + ' ' : '') + rec.name + (scale > 1 ? ' (2x Batch)' : '');
+        document.getElementById('cookModalMeta').textContent = (rec.prep || 'Prep') + ' • ' + (rec.appliance || 'Appliance');
+        document.getElementById('cookModalIngredients').innerHTML = (rec.ingredients || []).map(function(i) {
+          return '<li class="flex items-center justify-between border-b border-slate-800 pb-1"><span>' + i.name + '</span><span class="font-bold text-emerald-300">' + ((i.amount || 1) * scale) + ' ' + (i.unit || '') + '</span></li>';
+        }).join('');
+        const steps = currentCookingRecipe.customSteps || rec.steps || ['Cook ingredients thoroughly.'];
+        document.getElementById('cookModalSteps').innerHTML = steps.map(function(s) { return '<li class="leading-relaxed">' + s + '</li>'; }).join('');
+      }
+
+      window.aiRevertDirtyAppliances = async function() {
+        if (!currentCookingRecipe) return;
+        const rec = currentCookingRecipe.rec;
+        const txt = document.getElementById('airFryerConversionText');
+        if (txt) txt.textContent = '🤖 Reverting to standard Oven & The Hob...';
+        try {
+          const prompt = 'The user\'s CRISPi and blender are unavailable. Rewrite the cooking steps for "' + rec.name + '" (Ingredients: ' + (rec.ingredients || []).map(function(i) { return i.name + ' ' + i.amount + i.unit; }).join(', ') + '; Current steps: ' + (rec.steps || []).join(' ') + ') using ONLY a conventional fan oven and saucepans/frying pans on the hob (no zone numbers; use power levels 1-9, Boost, or Pre-Set front/middle/rear). Return ONLY a JSON array of strings.';
+          const newSteps = await callGeminiAPI(prompt, true);
+          if (Array.isArray(newSteps) && newSteps.length) {
+            currentCookingRecipe.customSteps = newSteps;
+            if (txt) txt.textContent = '🔄 Reverted to Oven & The Hob';
+            renderCookingModalContent();
+          }
+        } catch (err) {
+          if (txt) txt.textContent = 'Standard timings shown';
+          window.showToast(err.message);
+        }
+      };
+
+      window.aiConvertCookingSteps = async function(targetAppliance) {
+        if (!currentCookingRecipe) return;
+        const rec = currentCookingRecipe.rec;
+        const txt = document.getElementById('airFryerConversionText');
+        if (txt) txt.textContent = '🤖 Tuning method for ' + targetAppliance + '...';
+        try {
+          const prompt = 'Rewrite the cooking steps for "' + rec.name + '" (Ingredients: ' + (rec.ingredients || []).map(function(i) { return i.name + ' ' + i.amount + i.unit; }).join(', ') + '; Original steps: ' + (rec.steps || []).join(' ') + ') specifically following these rules: ' + HARDWARE_PROFILE_PROMPT + ' Return ONLY a JSON array of strings.';
+          const newSteps = await callGeminiAPI(prompt, true);
+          if (Array.isArray(newSteps) && newSteps.length) {
+            currentCookingRecipe.customSteps = newSteps;
+            if (txt) txt.textContent = '⚡ Tuned for CRISPi, Blender & The Hob';
+            renderCookingModalContent();
+          }
+        } catch (err) {
+          if (txt) txt.textContent = 'Standard timings shown';
+          window.showToast(err.message);
+        }
+      };
+
+      window.askSubstituteAssistant = async function() {
+        const inp = document.getElementById('subQueryInput');
+        const box = document.getElementById('subAnswerBox');
+        if (!inp || !box || !inp.value.trim()) return;
+        const query = inp.value.trim();
+        const stock = state.inventoryChips.filter(function(c) { return c.zone !== 'Out of Stock' && c.qty > 0; }).map(function(c) { return c.name; }).join(', ');
+        const staples = state.pantryStaples.filter(function(s) { return s.active; }).map(function(s) { return s.name; }).join(', ');
+
+        box.classList.remove('hidden');
+        box.textContent = '🧪 Checking your Fridge, Freezer, Cupboard & Spices for the best substitute...';
+        try {
+          const prompt = 'While cooking "' + (currentCookingRecipe ? currentCookingRecipe.rec.name : 'this recipe') + '", the user asks: "' + query + '". Their current active stock is: [' + stock + '] and spices/basics are: [' + staples + ']. Give a direct, 1-to-2 sentence practical substitution with exact ratios using what they already have.';
+          const answer = await callGeminiAPI(prompt, false);
+          box.textContent = '💡 ' + answer;
+        } catch (err) { box.textContent = '⚠️ ' + err.message; }
+      };
+
+      window.closeCookingMode = function() {
+        window.closeModal('cookingModal');
+        if (wakeLockSentinel) { try { wakeLockSentinel.release(); } catch (e) {} wakeLockSentinel = null; }
+      };
+
+      function renderStaplesModal() {
+        const badge = document.getElementById('staplesCountBadge');
+        if (badge) badge.textContent = state.pantryStaples.filter(function(s) { return s.active; }).length;
+        const box = document.getElementById('staplesChecklist');
+        if (!box) return;
+        box.innerHTML = state.pantryStaples.map(function(st, idx) {
+          return '<label class="flex items-center gap-2 p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs cursor-pointer">' +
+            '<input type="checkbox" ' + (st.active ? 'checked' : '') + ' onchange="window.toggleStaple(' + idx + ')" class="rounded bg-slate-800 text-emerald-500" />' +
+            '<span class="' + (st.active ? 'text-white' : 'text-slate-500 line-through') + '">' + st.name + '</span>' +
+          '</label>';
+        }).join('');
+      }
+
+      window.toggleStaple = function(idx) {
+        if (state.pantryStaples[idx]) { state.pantryStaples[idx].active = !state.pantryStaples[idx].active; saveState(); }
+      };
+
+      window.addNewStaple = function() {
+        const inp = document.getElementById('newStapleInput');
+        if (!inp || !inp.value.trim()) return;
+        state.pantryStaples.push({ name: inp.value.trim(), active: true });
+        inp.value = '';
+        saveState();
+      };
+
+      window.parseRawRecipeWithAI = async function() {
+        const rawEl = document.getElementById('rawRecipePasteInput');
+        const rawText = rawEl ? rawEl.value.trim() : '';
+        if (!rawText) return window.showToast('Paste a recipe or type a dish name first!');
+        const btn = document.getElementById('parseRecipeBtn');
+        if (btn) { btn.textContent = '🤖 Adapting...'; btn.disabled = true; }
+
+        try {
+          const prompt = 'Parse the following raw recipe text or dish request into a structured family recipe (scaled for 4 people). Automatically choose the best primary appliance ("Air Fryer" for the CRISPi, "Blender" for soups/sauces, or "Hob" for the hob) and write the cooking steps specifically following these rules: ' + HARDWARE_PROFILE_PROMPT + ' Also invent 1 clever Day-2 leftover transformer meal using the main protein. Return ONLY a valid JSON object with this exact schema: {"name": "Clean Dish Title", "emoji": "🍲", "prep": "Rush", "appliance": "Air Fryer", "ingredients": [{"name": "Ingredient Name", "amount": 500, "unit": "g", "aisle": "Meat & Fish"}], "steps": ["Step 1", "Step 2"], "transformer": {"name": "Leftover Meal Name", "extraIngredient": "Tortilla Wraps"}} Valid aisles: "Produce & Bakery", "Meat & Fish", "Chilled & Dairy", "Pantry & Tins", "Frozen". Valid prep: "Rush" (<20m), "Standard" (30m), "Weekend". RAW INPUT: ' + rawText;
+          const parsed = await callGeminiAPI(prompt, true);
+          document.getElementById('recName').value = parsed.name || 'Custom Dish';
+          document.getElementById('recPrep').value = parsed.prep || 'Standard';
+          document.getElementById('recAppliance').value = parsed.appliance || 'Air Fryer';
+          if (Array.isArray(parsed.ingredients)) {
+            document.getElementById('recIngredientsRaw').value = parsed.ingredients.map(function(i) {
+              return (i.name || 'Item') + ' | ' + (i.amount || 1) + ' | ' + (i.unit || 'unit') + ' | ' + (i.aisle || 'Pantry & Tins');
+            }).join('\n');
+          }
+          if (Array.isArray(parsed.steps)) document.getElementById('recStepsRaw').value = parsed.steps.join('\n');
+          if (parsed.transformer && parsed.transformer.name) {
+            document.getElementById('recTransformerRaw').value = parsed.transformer.name + ' | ' + (parsed.transformer.extraIngredient || 'Tortilla Wraps');
+          }
+          window.showToast('Adapted recipe for your kitchen!');
+        } catch (err) {
+          window.showToast(err.message);
+        } finally {
+          if (btn) { btn.textContent = '🤖 Parse & Auto-Adapt Recipe'; btn.disabled = false; }
+        }
+      };
+
+      window.saveCustomRecipe = function() {
+        const name = document.getElementById('recName').value.trim();
+        if (!name) return window.showToast('Please give the dish a name');
+        const prep = document.getElementById('recPrep').value;
+        const appliance = document.getElementById('recAppliance').value;
+        const rawLines = document.getElementById('recIngredientsRaw').value.split(/\r?\n/).filter(Boolean);
+        const stepLines = document.getElementById('recStepsRaw').value.split(/\r?\n/).filter(Boolean);
+        const transRaw = document.getElementById('recTransformerRaw').value.trim();
+
+        const ingredients = rawLines.map(function(line, i) {
+          const parts = line.split('|').map(function(s) { return s.trim(); });
+          return { name: parts[0] || 'Ingredient', amount: parseFloat(parts[1]) || 1, unit: parts[2] || 'unit', aisle: parts[3] || 'Pantry & Tins', isCoreProtein: i === 0 };
+        });
+
+        const transformers = [];
+        if (transRaw) {
+          const tParts = transRaw.split('|').map(function(s) { return s.trim(); });
+          transformers.push({ name: tParts[0], extraIngredients: tParts[1] ? [{ name: tParts[1], amount: 1, unit: 'pack', aisle: 'Produce & Bakery' }] : [] });
+        }
+
+        let emj = '🍲';
+        const lowName = name.toLowerCase();
+        if (lowName.indexOf('chicken') !== -1) emj = '🍗';
+        else if (lowName.indexOf('beef') !== -1 || lowName.indexOf('mince') !== -1 || lowName.indexOf('sausage') !== -1) emj = '🥩';
+        else if (lowName.indexOf('fish') !== -1 || lowName.indexOf('salmon') !== -1) emj = '🐟';
+        else if (lowName.indexOf('pizza') !== -1 || lowName.indexOf('wrap') !== -1 || lowName.indexOf('fajita') !== -1) emj = '🌯';
+        else if (lowName.indexOf('soup') !== -1) emj = '🥣';
+
+        state.regularRecipes.unshift({
+          id: 'custom-' + Date.now(),
+          name: name, emoji: emj, prep: prep, appliance: appliance,
+          steps: stepLines.length ? stepLines : ['Cook thoroughly.'],
+          transformers: transformers, ingredients: ingredients
+        });
+
+        document.getElementById('rawRecipePasteInput').value = '';
+        document.getElementById('recName').value = '';
+        document.getElementById('recIngredientsRaw').value = '';
+        document.getElementById('recStepsRaw').value = '';
+        document.getElementById('recTransformerRaw').value = '';
+
+        window.closeModal('newRecipeModal');
+        saveState();
+        window.showToast('Saved "' + name + '" to Google Sheet!');
+      };
+
+      window.shareSyncLink = async function() {
+        const payload = { k: state.geminiApiKey, u: state.cloudSyncUrl };
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+        const shareUrl = window.location.origin + window.location.pathname + '?sync=' + encodeURIComponent(encoded);
+
+        if (navigator.share) {
+          try { await navigator.share({ title: 'Family Kitchen Hub Setup', text: 'Tap to connect your phone:', url: shareUrl }); return; } catch (e) {}
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(shareUrl);
+        window.showToast('Copied Setup Link! Send to Gaia on WhatsApp.');
+      };
+
+      window.importSyncCodePrompt = function() {
+        const input = prompt('Paste the Setup Link or Code from your partner:');
+        if (!input) return;
+        try {
+          let code = input.trim();
+          if (code.indexOf('sync=') !== -1) code = decodeURIComponent(code.split('sync=')[1].split('&')[0]);
+          applySyncPayload(JSON.parse(decodeURIComponent(escape(atob(code)))));
+          window.closeModal('syncModal');
+          window.showToast('Connected to Google Sheet & AI key!');
+        } catch (e) { window.showToast('Invalid setup link or code.'); }
+      };
+
+      function applySyncPayload(decoded) {
+        if (!decoded) return;
+        if (decoded.k) {
+          state.geminiApiKey = decoded.k;
+          if (document.getElementById('apiKeyInput')) document.getElementById('apiKeyInput').value = decoded.k;
+        }
+        if (decoded.u) {
+          state.cloudSyncUrl = decoded.u;
+          if (document.getElementById('cloudUrlInput')) document.getElementById('cloudUrlInput').value = decoded.u;
+        }
+        if (decoded.c) state.inventoryChips = migrateInventoryChips(decoded.c);
+        if (decoded.w) state.weeklyPlan = decoded.w;
+        saveState(true);
+        if (state.cloudSyncUrl) window.pullFromCloud(true);
+      }
+
+      window.saveApiKey = function() {
+        state.geminiApiKey = document.getElementById('apiKeyInput').value.trim();
+        saveState();
+        updateAiKeyBadge();
+        window.closeModal('syncModal');
+        window.showToast('Saved Gemini API key locally!');
+      };
+
+      window.openModal = function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+      };
+
+      window.closeModal = function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      };
+
+      function renderAll() {
+        renderChips();
+        renderWeekBoard();
+        renderGrocerySection();
+        renderRegularsBank();
+        renderStaplesModal();
+        updateAiKeyBadge();
+      }
+
+      function updateCloudBadge(status, label) {
+        const dot = document.getElementById('cloudStatusDot');
+        const txt = document.getElementById('cloudStatusText');
+        if (!dot || !txt) return;
+        txt.textContent = label;
+        dot.className = 'inline-block w-2 h-2 rounded-full ' + (
+          status === 'synced' ? 'bg-emerald-400' :
+          status === 'syncing' ? 'bg-sky-400 animate-ping' :
+          status === 'error' ? 'bg-rose-500' : 'bg-amber-400'
+        );
+      }
+
+      function scheduleCloudPush() {
+        if (!state.cloudSyncUrl) { updateCloudBadge('local', 'Local Mode'); return; }
+        updateCloudBadge('syncing', 'Syncing...');
+        if (cloudPushTimer) clearTimeout(cloudPushTimer);
+        cloudPushTimer = setTimeout(function() { pushToCloud(); }, 500);
+      }
+
+      async function pushToCloud() {
+        if (!state.cloudSyncUrl) return;
+        const payload = {
+          inventoryChips: state.inventoryChips,
+          weeklyPlan: state.weeklyPlan,
+          regularRecipes: state.regularRecipes,
+          pantryStaples: state.pantryStaples,
+          aisleOrder: state.aisleOrder,
+          extraItems: state.extraItems,
+          lastUpdated: state.lastUpdated
+        };
+        try {
+          await fetch(state.cloudSyncUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          updateCloudBadge('synced', 'Sheet Synced');
+        } catch (e) {
+          updateCloudBadge('error', 'Sync Offline');
+        }
+      }
+
+      window.pullFromCloud = function(showNotification) {
+        if (!state.cloudSyncUrl) {
+          if (showNotification) window.openModal('syncModal');
+          return;
+        }
+        updateCloudBadge('syncing', 'Refreshing...');
+
+        function applyCloudData(data) {
+          if (data && data.weeklyPlan) {
+            isPullingCloud = true;
+            state.inventoryChips = migrateInventoryChips(data.inventoryChips || state.inventoryChips);
+            state.weeklyPlan = data.weeklyPlan || state.weeklyPlan;
+            state.regularRecipes = cleanRecipes(data.regularRecipes || state.regularRecipes);
+            state.pantryStaples = data.pantryStaples || state.pantryStaples;
+            state.aisleOrder = data.aisleOrder || state.aisleOrder;
+            state.extraItems = data.extraItems || state.extraItems;
+            localStorage.setItem('gillanFamilyMealState_v9', JSON.stringify(state));
+            renderAll();
+            isPullingCloud = false;
+            updateCloudBadge('synced', 'Sheet Synced');
+            if (showNotification) window.showToast('Pulled latest database from Google Sheet!');
+          } else {
+            pushToCloud();
+            updateCloudBadge('synced', 'Sheet Synced');
+          }
+        }
+
+        try {
+          const cbName = 'kitchenSyncCb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+          const script = document.createElement('script');
+          let resolved = false;
+
+          const timeout = setTimeout(function() {
+            if (!resolved) {
+              resolved = true;
+              if (document.body.contains(script)) document.body.removeChild(script);
+              delete window[cbName];
+              updateCloudBadge('error', 'Sync Offline');
+              if (showNotification) window.showToast('Could not reach Google Sheet. Check deployment version.');
+            }
+          }, 9000);
+
+          window[cbName] = function(data) {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              if (document.body.contains(script)) document.body.removeChild(script);
+              delete window[cbName];
+              applyCloudData(data);
+            }
+          };
+
+          const separator = state.cloudSyncUrl.indexOf('?') === -1 ? '?' : '&';
+          script.src = state.cloudSyncUrl + separator + 'callback=' + cbName + '&t=' + Date.now();
+          script.onerror = function() {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              if (document.body.contains(script)) document.body.removeChild(script);
+              delete window[cbName];
+              updateCloudBadge('error', 'Sync Offline');
+              if (showNotification) window.showToast('Could not reach Google Sheet Web App.');
+            }
+          };
+          document.body.appendChild(script);
+        } catch (err) {
+          updateCloudBadge('error', 'Sync Offline');
+        }
+      };
+
+      window.saveCloudUrl = function() {
+        const val = document.getElementById('cloudUrlInput').value.trim();
+        state.cloudSyncUrl = val;
+        localStorage.setItem('gillanFamilyMealState_v9', JSON.stringify(state));
+        window.closeModal('syncModal');
+        if (val) window.pullFromCloud(true);
+        else updateCloudBadge('local', 'Local Mode');
+      };
+
+      function saveState(skipCloudPush) {
+        state.lastUpdated = Date.now();
+        try { localStorage.setItem('gillanFamilyMealState_v9', JSON.stringify(state)); } catch (e) {}
+        renderAll();
+        if (!skipCloudPush && !isPullingCloud) scheduleCloudPush();
+      }
+
+      function loadState() {
+        try {
+          const saved = localStorage.getItem('gillanFamilyMealState_v9') ||
+                        localStorage.getItem('gillanFamilyMealState_v8') ||
+                        localStorage.getItem('gillanFamilyMealState_v7') ||
+                        localStorage.getItem('gillanFamilyMealState_v6');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            state = Object.assign({}, state, parsed);
+            state.inventoryChips = migrateInventoryChips(state.inventoryChips);
+            state.regularRecipes = cleanRecipes(state.regularRecipes);
+          }
+        } catch (e) {}
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sync')) {
+          try {
+            applySyncPayload(JSON.parse(decodeURIComponent(escape(atob(params.get('sync'))))));
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (err) {}
+        }
+
+        if (document.getElementById('apiKeyInput')) document.getElementById('apiKeyInput').value = state.geminiApiKey || '';
+        if (document.getElementById('cloudUrlInput')) document.getElementById('cloudUrlInput').value = state.cloudSyncUrl || '';
+
+        saveState(true);
+        if (state.cloudSyncUrl) window.pullFromCloud(false);
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadState);
+      else loadState();
+    })();
+  </script>
+</body>
+</html>
